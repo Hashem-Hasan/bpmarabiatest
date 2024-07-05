@@ -1,0 +1,15 @@
+import React from 'react'
+import CompanyStructure from '../components/CompanyStructure'
+import ProtectedRoute from '../components/ProtectedRoute'
+
+const Page = () => {
+  return (
+    <div className='bg-white'>
+      <ProtectedRoute>
+        <CompanyStructure />
+      </ProtectedRoute>
+    </div>
+  )
+}
+
+export default Page;
