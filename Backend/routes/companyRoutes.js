@@ -1,5 +1,5 @@
 const express = require('express');
-const User = require('../models/User');
+const User = require('../models/user');
 const BpmnModel = require('../models/BpmnModel');
 const authenticateToken = require('../middleware/authenticateToken');
 const authenticateEmployeeToken = require('../middleware/authenticateEmployeeToken');
