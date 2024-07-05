@@ -5,7 +5,6 @@ const cors = require('cors');
 const bpmnRoutes = require('./routes/bpmnroutes');
 const authRoutes = require('./routes/auth');
 const companyStructureRoutes = require('./routes/companyStructure');
-const uploadRoutes = require('./routes/upload'); // Import the upload routes
 const employeeRoutes = require('./routes/employee'); // Import the employee routes
 const employeeRoutess = require('./routes/employeeRoutes');
 const companyRoutes = require('./routes/companyRoutes');
@@ -38,7 +37,6 @@ mongoose.connect(process.env.MONGO_URI, {
 app.use('/api/bpmnroutes', bpmnRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/company-structure', companyStructureRoutes);
-app.use('/api/upload', uploadRoutes); // Use the upload routes
 app.use('/api/employees', employeeRoutes); // Use the employee routes
 app.use('/api/employeess', employeeRoutess);
 app.use('/api/company', companyRoutes);
