@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import BpmnEditor from '../components/BpmnEditor';
@@ -12,6 +12,8 @@ const Home = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [fetchingDiagrams, setFetchingDiagrams] = useState(false);
+  const [editorKey, setEditorKey] = useState(Date.now());
   const observer = useRef();
   const isFetching = useRef(false);
 
@@ -34,6 +36,7 @@ const Home = () => {
   const fetchDiagrams = async (page) => {
     if (isFetching.current) return;
     isFetching.current = true;
+    setFetchingDiagrams(true);
     const token = mainUserToken || employeeToken;
 
     let endpoint;
@@ -65,6 +68,7 @@ const Home = () => {
       console.error('Error fetching diagrams:', err);
     } finally {
       isFetching.current = false;
+      setFetchingDiagrams(false);
     }
   };
 
@@ -72,22 +76,46 @@ const Home = () => {
     const token = mainUserToken || employeeToken;
     setLoading(true);
     try {
+      let response;
       if (id) {
-        await axios.put(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/${id}`, { name, xml }, {
+        response = await axios.put(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/${id}`, { name, xml }, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
       } else {
-        await axios.post(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes`, { name, xml }, {
+        response = await axios.post(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes`, { name, xml }, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
       }
-      resetDiagrams();
       alert('Diagram saved successfully!');
-      window.location.reload();
+      const savedDiagram = response.data;
+
+      setDiagrams(prevDiagrams => {
+        const index = prevDiagrams.findIndex(diagram => diagram._id === savedDiagram._id);
+        if (index === -1) {
+          return [savedDiagram, ...prevDiagrams];
+        } else {
+          const updatedDiagrams = [...prevDiagrams];
+          updatedDiagrams[index] = savedDiagram;
+          return updatedDiagrams;
+        }
+      });
+      setFilteredDiagrams(prevDiagrams => {
+        const index = prevDiagrams.findIndex(diagram => diagram._id === savedDiagram._id);
+        if (index === -1) {
+          return [savedDiagram, ...prevDiagrams];
+        } else {
+          const updatedDiagrams = [...prevDiagrams];
+          updatedDiagrams[index] = savedDiagram;
+          return updatedDiagrams;
+        }
+      });
+      setSelectedDiagram(null);
+      // Reset editor by changing the key
+      setEditorKey(Date.now());
     } catch (err) {
       console.error('Error saving diagram:', err);
     } finally {
@@ -157,7 +185,6 @@ const Home = () => {
     } catch (err) {
       console.error('Error toggling verification:', err);
     }
-    window.location.reload();
   };
 
   const lastDiagramElementRef = (node) => {
@@ -173,7 +200,7 @@ const Home = () => {
   return (
     <div className='bg-white min-h-screen text-center h-auto justify-center text-black'>
       <h1 className='font-bold text-3xl py-4'>Process Editor</h1>
-      <BpmnEditor onSave={saveDiagram} diagramToEdit={selectedDiagram} />
+      <BpmnEditor key={editorKey} onSave={saveDiagram} diagramToEdit={selectedDiagram} />
       <h2 className='mt-4'>Saved Diagrams</h2>
       <input 
         type='text' 
@@ -183,8 +210,8 @@ const Home = () => {
         className='my-2 p-2 border border-gray-300 rounded'
       />
       <div className='border border-gray-300 w-1/2 items-center mx-auto rounded max-h-64 overflow-y-auto p-2'>
-        {loading && (
-          <div className="flex justify-center items-center min-h-screen">
+        {fetchingDiagrams && (
+          <div className="flex justify-center items-center">
             <Spinner size="lg" color="warning" />
           </div>
         )}

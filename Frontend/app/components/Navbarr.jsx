@@ -31,8 +31,7 @@ export default function App() {
 
   const menuItems = [
     { name: "Home", path: "/" },
-    { name: "Customers", path: "/customers" },
-    { name: "About Us", path: "/about" },
+    { name: "About Us", path: "https://bpmarabia.com/" },
   ];
 
   useEffect(() => {
@@ -179,7 +178,7 @@ export default function App() {
                   href="/Tool"
                   className={`text-black ${isActive("/Tool") ? "font-bold text-orange-500" : ""}`}
                 >
-                  Tool
+                  Process Builder
                 </Link>
               </NavbarItem>
             )}
@@ -256,7 +255,7 @@ export default function App() {
               className={`w-full text-black ${isActive("/Tool") ? "font-bold text-orange-500" : ""}`}
               size="lg"
             >
-              Tool
+              Process Builder
             </Link>
           </NavbarMenuItem>
         )}

@@ -22,6 +22,10 @@ const EmployeeManagement = () => {
   const [form, setForm] = useState({ fullName: "", email: "", password: "", phoneNumber: "", hrId: "", isAdmin: false, ownedProcesses: [], role: "" });
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingAction, setLoadingAction] = useState({
+    addEdit: false,
+    delete: false,
+  });
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
@@ -69,6 +73,7 @@ const EmployeeManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
+    setLoadingAction({ ...loadingAction, addEdit: true });
     try {
       if (editingEmployee) {
         await axios.put(
@@ -96,6 +101,8 @@ const EmployeeManagement = () => {
       fetchEmployees();
     } catch (error) {
       console.error("Error submitting form:", error);
+    } finally {
+      setLoadingAction({ ...loadingAction, addEdit: false });
     }
   };
 
@@ -115,6 +122,7 @@ const EmployeeManagement = () => {
 
   const handleDelete = async (id) => {
     const token = localStorage.getItem("token");
+    setLoadingAction({ ...loadingAction, delete: true });
     try {
       await axios.delete(
         `${process.env.NEXT_PUBLIC_API_HOST}/api/employees/${id}`,
@@ -127,6 +135,8 @@ const EmployeeManagement = () => {
       fetchEmployees();
     } catch (error) {
       console.error("Error deleting employee:", error);
+    } finally {
+      setLoadingAction({ ...loadingAction, delete: false });
     }
   };
 
@@ -209,7 +219,7 @@ const EmployeeManagement = () => {
               </select>
             </div>
             <Button type="submit" className="bg-orange-500 text-white w-full">
-              {editingEmployee ? "Update Employee" : "Add Employee"}
+              {loadingAction.addEdit ? <Spinner size="sm" color="warning" /> : editingEmployee ? "Update Employee" : "Add Employee"}
             </Button>
           </form>
         </div>
@@ -238,7 +248,7 @@ const EmployeeManagement = () => {
                     <FaEdit />
                   </Button>
                   <Button className="bg-red-500 text-white" onClick={() => handleDelete(employee._id)}>
-                    <FaTrash />
+                    {loadingAction.delete ? <Spinner size="sm" color="warning" /> : <FaTrash />}
                   </Button>
                 </div>
               </div>

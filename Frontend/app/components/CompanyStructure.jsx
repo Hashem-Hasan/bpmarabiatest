@@ -10,6 +10,12 @@ const CompanyStructure = () => {
   const [editRoleId, setEditRoleId] = useState(null);
   const [editRoleName, setEditRoleName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingAction, setLoadingAction] = useState({
+    addSubrole: false,
+    defineRoot: false,
+    deleteRole: false,
+    editRole: false,
+  });
 
   useEffect(() => {
     fetchStructure();
@@ -36,6 +42,7 @@ const CompanyStructure = () => {
   };
 
   const addRole = async (parentId) => {
+    setLoadingAction({ ...loadingAction, addSubrole: true });
     const token = localStorage.getItem("token");
     try {
       const response = await axios.post(
@@ -69,10 +76,13 @@ const CompanyStructure = () => {
       setShowInput(null);
     } catch (error) {
       console.error("Error adding role:", error);
+    } finally {
+      setLoadingAction({ ...loadingAction, addSubrole: false });
     }
   };
 
   const editRole = async (roleId) => {
+    setLoadingAction({ ...loadingAction, editRole: true });
     const token = localStorage.getItem("token");
     try {
       await axios.put(
@@ -101,10 +111,13 @@ const CompanyStructure = () => {
       setEditRoleName("");
     } catch (error) {
       console.error("Error editing role:", error);
+    } finally {
+      setLoadingAction({ ...loadingAction, editRole: false });
     }
   };
 
   const deleteRole = async (roleId) => {
+    setLoadingAction({ ...loadingAction, deleteRole: true });
     const token = localStorage.getItem("token");
     try {
       await axios.delete(
@@ -131,6 +144,8 @@ const CompanyStructure = () => {
       setStructure(updateStructure(structure));
     } catch (error) {
       console.error("Error deleting role:", error);
+    } finally {
+      setLoadingAction({ ...loadingAction, deleteRole: false });
     }
   };
 
@@ -144,7 +159,7 @@ const CompanyStructure = () => {
               className="bg-orange-500 text-white"
               onClick={() => setShowInput(role._id)}
             >
-              Add Subrole
+              {loadingAction.addSubrole && showInput === role._id ? <Spinner size="sm" color="warning" /> : 'Add Subrole'}
             </Button>
             <Button
               className="bg-yellow-500 text-white"
@@ -153,7 +168,7 @@ const CompanyStructure = () => {
                 setEditRoleName(role.name);
               }}
             >
-              Edit
+              {loadingAction.editRole && editRoleId === role._id ? <Spinner size="sm" color="warning" /> : 'Edit'}
             </Button>
           </div>
           {role.subRoles?.length === 0 && (
@@ -161,7 +176,7 @@ const CompanyStructure = () => {
               className="bg-red-500 text-white mt-2"
               onClick={() => deleteRole(role._id)}
             >
-              Delete
+              {loadingAction.deleteRole ? <Spinner size="sm" color="warning" /> : 'Delete'}
             </Button>
           )}
           {showInput === role._id && (
@@ -177,7 +192,7 @@ const CompanyStructure = () => {
                 className="bg-green-500 text-white ml-2"
                 onClick={() => addRole(role._id)}
               >
-                Save
+                {loadingAction.addSubrole ? <Spinner size="sm" color="warning" /> : 'Save'}
               </Button>
             </div>
           )}
@@ -194,7 +209,7 @@ const CompanyStructure = () => {
                 className="bg-green-500 text-white ml-2"
                 onClick={() => editRole(role._id)}
               >
-                Save
+                {loadingAction.editRole ? <Spinner size="sm" color="warning" /> : 'Save'}
               </Button>
             </div>
           )}
@@ -232,7 +247,7 @@ const CompanyStructure = () => {
                   onClick={() => addRole(null)}
                   className="bg-orange-500 text-white w-full"
                 >
-                  Add Root Role
+                  {loadingAction.defineRoot ? <Spinner size="sm" color="warning" /> : 'Add Root Role'}
                 </Button>
               </div>
             )}
