@@ -14,6 +14,7 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [fetchingDiagrams, setFetchingDiagrams] = useState(false);
   const [editorKey, setEditorKey] = useState(Date.now());
+  const [loadingVerification, setLoadingVerification] = useState(null); // New state for verification loading
   const observer = useRef();
   const isFetching = useRef(false);
 
@@ -175,15 +176,38 @@ const Home = () => {
 
   const toggleVerification = async (id, isVerified) => {
     const token = mainUserToken;
+    setLoadingVerification(id);
     try {
-      await axios.put(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/toggle-verify/${id}`, {}, {
+      const response = await axios.put(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/toggle-verify/${id}`, {}, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      resetDiagrams();
+      const updatedDiagram = response.data;
+
+      setDiagrams(prevDiagrams => {
+        const index = prevDiagrams.findIndex(diagram => diagram._id === updatedDiagram._id);
+        if (index !== -1) {
+          const updatedDiagrams = [...prevDiagrams];
+          updatedDiagrams[index] = updatedDiagram;
+          return updatedDiagrams;
+        }
+        return prevDiagrams;
+      });
+
+      setFilteredDiagrams(prevDiagrams => {
+        const index = prevDiagrams.findIndex(diagram => diagram._id === updatedDiagram._id);
+        if (index !== -1) {
+          const updatedDiagrams = [...prevDiagrams];
+          updatedDiagrams[index] = updatedDiagram;
+          return updatedDiagrams;
+        }
+        return prevDiagrams;
+      });
     } catch (err) {
       console.error('Error toggling verification:', err);
+    } finally {
+      setLoadingVerification(null);
     }
   };
 
@@ -227,7 +251,7 @@ const Home = () => {
                       <>
                         <button onClick={() => deleteDiagram(diagram._id)} className="ml-2 text-red-500">Delete</button>
                         <button onClick={() => toggleVerification(diagram._id, diagram.isVerified)} className="ml-2 text-green-500">
-                          {diagram.isVerified ? 'Unverify' : 'Verify'}
+                          {loadingVerification === diagram._id ? <Spinner size="sm" color="warning" /> : (diagram.isVerified ? 'Unverify' : 'Verify')}
                         </button>
                       </>
                     )}
@@ -244,7 +268,7 @@ const Home = () => {
                       <>
                         <button onClick={() => deleteDiagram(diagram._id)} className="ml-2 text-red-500">Delete</button>
                         <button onClick={() => toggleVerification(diagram._id, diagram.isVerified)} className="ml-2 text-green-500">
-                          {diagram.isVerified ? 'Unverify' : 'Verify'}
+                          {loadingVerification === diagram._id ? <Spinner size="sm" color="warning" /> : (diagram.isVerified ? 'Unverify' : 'Verify')}
                         </button>
                       </>
                     )}
