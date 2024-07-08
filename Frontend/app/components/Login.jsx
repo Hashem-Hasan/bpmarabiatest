@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { Spinner } from '@nextui-org/react';
 
 const Login = () => {
   const [businessMail, setBusinessMail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false); // New state for loading
   const router = useRouter();
 
   useEffect(() => {
@@ -21,6 +23,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setErrorMessage(''); // Reset error message
+    setLoading(true); // Start loading
     try {
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_HOST}/api/auth/login`, { businessMail, password });
       if (response.status === 200) {
@@ -33,6 +36,8 @@ const Login = () => {
       } else {
         console.error('Error logging in:', error);
       }
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
@@ -85,9 +90,10 @@ const Login = () => {
             </div>
             <button
               type="submit"
-              className="w-full transition-all flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+              disabled={loading}
+              className="w-full transition-all flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
             >
-              Login
+              {loading ? <Spinner size="sm" color="white" /> : 'Login'}
             </button>
           </form>
         </div>
