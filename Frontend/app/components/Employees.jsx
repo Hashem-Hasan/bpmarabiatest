@@ -1,8 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Button, Input, Checkbox, Spinner } from "@nextui-org/react";
+import { Button, Input, Spinner } from "@nextui-org/react";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import axios from "axios";
+import Modal from './Modal';  // Import the custom modal component
 
 // Helper function to flatten the roles with indentation for subroles
 function flattenRoles(roles, prefix = '') {
@@ -19,7 +20,7 @@ function flattenRoles(roles, prefix = '') {
 const EmployeeManagement = () => {
   const [employees, setEmployees] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [form, setForm] = useState({ fullName: "", email: "", password: "", phoneNumber: "", hrId: "", isAdmin: false, ownedProcesses: [], role: "" });
+  const [form, setForm] = useState({ fullName: "", email: "", password: "", phoneNumber: "", hrId: "", ownedProcesses: [], role: "" });
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingAction, setLoadingAction] = useState({
@@ -27,6 +28,8 @@ const EmployeeManagement = () => {
     delete: false,
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -96,7 +99,7 @@ const EmployeeManagement = () => {
           }
         );
       }
-      setForm({ fullName: "", email: "", password: "", phoneNumber: "", hrId: "", isAdmin: false, ownedProcesses: [], role: "" });
+      setForm({ fullName: "", email: "", password: "", phoneNumber: "", hrId: "", ownedProcesses: [], role: "" });
       setEditingEmployee(null);
       fetchEmployees();
     } catch (error) {
@@ -113,19 +116,24 @@ const EmployeeManagement = () => {
       password: "",
       phoneNumber: employee.phoneNumber,
       hrId: employee.hrId,
-      isAdmin: employee.isAdmin,
       ownedProcesses: employee.ownedProcesses,
       role: employee.role ? employee.role._id : "",
     });
     setEditingEmployee(employee);
   };
 
-  const handleDelete = async (id) => {
+  const confirmDelete = (employeeId) => {
+    setEmployeeToDelete(employeeId);
+    setIsConfirmOpen(true);
+  };
+
+  const handleDelete = async () => {
+    setIsConfirmOpen(false);
     const token = localStorage.getItem("token");
     setLoadingAction({ ...loadingAction, delete: true });
     try {
       await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_HOST}/api/employees/${id}`,
+        `${process.env.NEXT_PUBLIC_API_HOST}/api/employees/${employeeToDelete}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -153,11 +161,11 @@ const EmployeeManagement = () => {
   }
 
   return (
-    <div className="employee-management p-8 bg-white  space-y-14 shadow-lg min-h-screen flex flex-col items-center justify-center text-center">
+    <div className="employee-management p-8 bg-white space-y-14 shadow-lg min-h-screen flex flex-col items-center justify-center text-center">
       <h1 className="text-4xl font-bold mb-4 text-black w-full">Employee Management</h1>
       <div className="flex flex-col md:flex-row items-center w-full md:justify-center">
-        <div className="w-1/3  md:pr-4 ">
-          <form onSubmit={handleSubmit} className="w-full  mx-auto">
+        <div className="w-1/3 md:pr-4">
+          <form onSubmit={handleSubmit} className="w-full mx-auto">
             <Input
               type="text"
               value={form.fullName}
@@ -193,14 +201,6 @@ const EmployeeManagement = () => {
               placeholder="HR ID"
               className="border border-gray-300 p-2 rounded mb-2 w-full text-black"
             />
-            <div className="flex items-center mb-2">
-              <Checkbox
-                checked={form.isAdmin}
-                onChange={(e) => setForm({ ...form, isAdmin: e.target.checked })}
-              >
-                Is Admin?
-              </Checkbox>
-            </div>
             <div className="mb-2">
               <label htmlFor="role" className="block text-black mb-1">Role</label>
               <select
@@ -224,7 +224,7 @@ const EmployeeManagement = () => {
           </form>
         </div>
 
-        <div className=" w-1/3  md:pl-4 mt-8 md:mt-0">
+        <div className="w-1/3 md:pl-4 mt-8 md:mt-0">
           <div className="mb-4">
             <Input
               type="text"
@@ -241,13 +241,12 @@ const EmployeeManagement = () => {
                 <p>Email: {employee.email}</p>
                 <p>Phone: {employee.phoneNumber}</p>
                 <p>HR ID: {employee.hrId}</p>
-                <p>Admin: {employee.isAdmin ? "Yes" : "No"}</p>
                 <p>Role: {employee.role ? employee.role.name : "No Role Assigned"}</p>
                 <div className="flex space-x-2 mt-2">
                   <Button className="bg-yellow-500 text-white" onClick={() => handleEdit(employee)}>
                     <FaEdit />
                   </Button>
-                  <Button className="bg-red-500 text-white" onClick={() => handleDelete(employee._id)}>
+                  <Button className="bg-red-500 text-white" onClick={() => confirmDelete(employee._id)}>
                     {loadingAction.delete ? <Spinner size="sm" color="warning" /> : <FaTrash />}
                   </Button>
                 </div>
@@ -256,14 +255,16 @@ const EmployeeManagement = () => {
           </div>
         </div>
       </div>
-      <div className="flex w-full justify-center space-x-4 mt-8">
-        <Button className="bg-gray-500 w-1/3 text-white" onClick={() => window.location.href = '/Structure'}>
-          Back
-        </Button>
-        <Button className="bg-orange-500 w-1/3 text-white" onClick={() => window.location.href = '/Tool'}>
-          Next Step
-        </Button>
-      </div>
+
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        title="Confirm Deletion"
+        onConfirm={handleDelete}
+      >
+        Are you sure you want to delete this employee?
+      </Modal>
     </div>
   );
 };

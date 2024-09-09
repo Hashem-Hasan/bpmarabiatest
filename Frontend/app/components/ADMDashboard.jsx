@@ -75,15 +75,22 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="admin-dashboard p-8 bg-white min-h-screen flex flex-col items-center">
+    <div className="admin-dashboard p-8   flex flex-col items-center">
       <h1 className="text-2xl font-bold mb-4 text-black">Admin Dashboard</h1>
       <div className="flex flex-wrap justify-center gap-4 w-full mb-8">
         <Card
           isPressable
           className="w-full md:w-1/3 p-4"
+          onClick={() => window.location.href = "/DStructure"}
+        >
+          <CardHeader><h2>Departmens Structure</h2></CardHeader>
+        </Card>
+        <Card
+          isPressable
+          className="w-full md:w-1/3 p-4"
           onClick={() => window.location.href = "/Structure"}
         >
-          <CardHeader><h2>Company Structure</h2></CardHeader>
+          <CardHeader><h2>Roles Structure</h2></CardHeader>
         </Card>
         <Card
           isPressable

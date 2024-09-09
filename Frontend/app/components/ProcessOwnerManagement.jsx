@@ -187,22 +187,7 @@ const ProcessOwnerManagement = () => {
           </div>
         </div>
       </div>
-      {token && (
-        <div className="flex w-full justify-center space-x-4 mt-8">
-          <Button
-            className="bg-gray-500 w-1/3 text-white"
-            onClick={() => window.location.href = "/Tool"}
-          >
-            Back
-          </Button>
-          <Button
-            className="bg-orange-500 w-1/3 text-white"
-            onClick={() => window.location.href = "/RolesAssigner"}
-          >
-            Next Step
-          </Button>
-        </div>
-      )}
+      
     </div>
   );
 };

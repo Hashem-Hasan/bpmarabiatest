@@ -26,14 +26,16 @@ const EmployeeLogin = () => {
       if (response.status === 200) {
         console.log('Login Response:', response.data); // Add this line for debugging
         localStorage.setItem('employeeToken', response.data.token); // Save token to local storage
-        window.location.href = '/employee-dashboard'; // Redirect to home page
-        ; 
+        window.location.href = '/employee-dashboard'; // Redirect to employee dashboard
       }
     } catch (error) {
       if (error.response && error.response.status === 400) {
         setErrorMessage('Password or email is incorrect');
+      } else if (error.response && error.response.status === 403) {
+        setErrorMessage('Your account is disabled, please contact your system administrator for support');
       } else {
         console.error('Error logging in:', error);
+        setErrorMessage('An error occurred, please contact your system administrator');
       }
     }
   };

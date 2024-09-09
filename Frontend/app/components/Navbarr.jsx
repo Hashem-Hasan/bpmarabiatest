@@ -226,8 +226,8 @@ export default function App() {
               </Link>
             </NavbarItem>
             <NavbarItem>
-              <Button as={Link} color="warning" href="/signup" variant="flat" className={`text-primary ${pathname === "/signup" ? "font-bold text-orange-500" : ""}`}>
-                Sign Up
+              <Button as={Link} color="warning" href="/ELogin" variant="flat" className={`text-primary ${pathname === "/ELogin" ? "font-bold text-orange-500" : ""}`}>
+                Employees Login
               </Button>
             </NavbarItem>
           </>

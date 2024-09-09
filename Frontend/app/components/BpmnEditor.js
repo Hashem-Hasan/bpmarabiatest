@@ -7,10 +7,9 @@ import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import DiagramExporter from './DiagramExporter';
 
-const BpmnEditor = ({ onSave, diagramToEdit }) => {
+const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
   const modelerRef = useRef(null);
   const [diagramName, setDiagramName] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -23,6 +22,43 @@ const BpmnEditor = ({ onSave, diagramToEdit }) => {
   const [comments, setComments] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [newComment, setNewComment] = useState('');
+  const [departments, setDepartments] = useState([]);
+  const [selectedDepartment, setSelectedDepartment] = useState('');
+
+  useEffect(() => {
+    if (diagramToEdit || isDiagramLoaded) {
+      fetchDepartments();
+    }
+  }, [diagramToEdit, isDiagramLoaded]);
+
+  const fetchDepartments = async () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('employeeToken');
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_HOST}/api/department-structure`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setDepartments(response.data.departments);
+
+      if (diagramToEdit && diagramToEdit.department) {
+        setSelectedDepartment(diagramToEdit.department);
+      }
+    } catch (err) {
+      console.error('Error fetching departments:', err);
+    }
+  };
+
+  const renderDepartments = (departments, prefix = '') => {
+    return departments.map(department => (
+      <React.Fragment key={department._id}>
+        <option value={department._id}>
+          {prefix}{department.name}
+        </option>
+        {department.subDepartments && renderDepartments(department.subDepartments, `${prefix}--`)}
+      </React.Fragment>
+    ));
+  };
 
   useEffect(() => {
     modelerRef.current = new BpmnModeler({
@@ -108,7 +144,12 @@ const BpmnEditor = ({ onSave, diagramToEdit }) => {
       alert('Diagram name is required');
       return;
     }
-
+  
+    if (!selectedDepartment) {
+      alert('Please select a department');
+      return;
+    }
+  
     try {
       const { xml } = await modelerRef.current.saveXML({ format: true });
       if (!xml || xml.trim().length === 0) {
@@ -116,118 +157,70 @@ const BpmnEditor = ({ onSave, diagramToEdit }) => {
         return;
       }
       setLoading(true);
-      const token = localStorage.getItem('employeeToken');
+  
+      const payload = {
+        id: diagramId,
+        name: diagramName,
+        xml,
+        department: selectedDepartment,
+      };
+  
+      console.log('Submitting payload:', payload);
+  
       if (onSave) {
-        await onSave({ id: diagramId, name: diagramName, xml, token });
+        const success = await onSave(payload); // Wait for onSave to complete and check its result
+        if (success) {
+          onClear(); // Call the clear handler from parent only if save was successful
+        }
       }
     } catch (err) {
       console.error('Error saving BPMN diagram:', err);
+  
+      // Check if the error response is 403
+      if (err.response && err.response.status === 403) {
+        alert(err.response.data.message || 'You do not have permission to perform this action.');
+      } else {
+        alert('An error occurred while saving the diagram. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
+  
+  
 
-  const exportDiagram = async () => {
-    const canvas = modelerRef.current.get('canvas');
-    canvas.zoom('fit-viewport'); // Ensure the diagram fits within the viewport
-  
-    const diagramCanvas = canvas._container;
-    const svgElement = diagramCanvas.querySelector('svg');
-  
-    if (!svgElement) {
-      alert('BPMN diagram element not found');
-      return;
+  const clearSelection = async () => {
+    setDiagramName('');
+    setCompanyName('');
+    setPhoneNumber('');
+    setDiagramId(null);
+    setIsDiagramLoaded(false);
+    setSelectedElement(null);
+    setAttachments([]);
+    setComments([]);
+    setSelectedDepartment('');
+    
+    // Destroy the existing modeler instance
+    if (modelerRef.current) {
+      modelerRef.current.destroy();
     }
   
-    const canvasElement = diagramCanvas.cloneNode(true);
-    const palette = canvasElement.querySelector('.djs-palette');
-    const minimap = canvasElement.querySelector('.djs-minimap');
-    const tool = canvasElement.querySelector('.djs-tool');
-    if (palette) palette.remove();
-    if (minimap) minimap.remove();
-    if (tool) tool.remove();
-  
-    // Fetch company info
-    let companyName = '';
-    let phoneNumber = '';
-  
-    try {
-      const token = localStorage.getItem('token') || localStorage.getItem('employeeToken');
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_HOST}/api/company/company-info/${diagramToEdit._id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      companyName = response.data.companyName;
-      phoneNumber = response.data.phoneNumber;
-    } catch (error) {
-      console.error('Error fetching company info:', error);
-      alert('Error fetching company info. Please try again.');
-      return;
-    }
-  
-    // Create a temporary container for the cloned canvas
-    const tempContainer = document.createElement('div');
-    tempContainer.style.position = 'fixed';
-    tempContainer.style.top = '0';
-    tempContainer.style.left = '0';
-    tempContainer.style.width = '100%';
-    tempContainer.style.height = '100%';
-    tempContainer.style.zIndex = '-1';
-    document.body.appendChild(tempContainer);
-    tempContainer.appendChild(canvasElement);
-  
-    // Use html2canvas to capture the diagram as a canvas
-    html2canvas(canvasElement, { scale: 3 }).then((canvas) => {
-      document.body.removeChild(tempContainer); // Clean up the temporary container
-  
-      const context = canvas.getContext('2d');
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-  
-      // Calculate the bounding box of the non-transparent pixels
-      let minX = canvas.width;
-      let minY = canvas.height;
-      let maxX = 0;
-      let maxY = 0;
-  
-      for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-          const index = (y * canvas.width + x) * 4;
-          const alpha = imageData.data[index + 3];
-          if (alpha > 0) {
-            if (x < minX) minX = x;
-            if (y < minY) minY = y;
-            if (x > maxX) maxX = x;
-            if (y > maxY) maxY = y;
-          }
+    // Recreate a new instance of the modeler
+    modelerRef.current = new BpmnModeler({
+      container: '#bpmn-container',
+      width: '100%',
+      additionalModules: [
+        {
+          __init__: ['customPaletteProvider'],
+          customPaletteProvider: ['type', CustomPaletteProvider]
         }
-      }
-  
-      const croppedWidth = maxX - minX + 1;
-      const croppedHeight = maxY - minY + 1;
-      const croppedCanvas = document.createElement('canvas');
-      croppedCanvas.width = croppedWidth;
-      croppedCanvas.height = croppedHeight;
-      const croppedContext = croppedCanvas.getContext('2d');
-      croppedContext.putImageData(context.getImageData(minX, minY, croppedWidth, croppedHeight), 0, 0);
-  
-      const imgData = croppedCanvas.toDataURL('image/png');
-      const pdf = new jsPDF('landscape', undefined, [croppedWidth / 3, croppedHeight / 3]);
-  
-      // Add diagram name, company name, and phone number at the top
-      pdf.setFontSize(36);
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const text = `${companyName}     ${diagramName}     ${phoneNumber}`;
-      const textWidth = pdf.getStringUnitWidth(text) * pdf.internal.getFontSize() / pdf.internal.scaleFactor;
-      const textX = (pageWidth - textWidth) / 2;
-      pdf.text(text, textX, 20);
-  
-      pdf.addImage(imgData, 'PNG', 0, 40, pageWidth, pdf.internal.pageSize.getHeight() - 50);
-      pdf.save(`${diagramName}.pdf`);
-    }).catch((error) => {
-      console.error('Error capturing diagram:', error);
-      alert('Error exporting diagram. Please try again.');
+      ],
     });
+  
+    // Add event listeners back to the new instance
+    modelerRef.current.on('element.click', handleElementClick);
+  
+    onClear(); // Call clear handler to sync with parent state
   };
   
   const handleElementClick = (event) => {
@@ -295,7 +288,7 @@ const BpmnEditor = ({ onSave, diagramToEdit }) => {
       const response = await axios.post('http://localhost:3001/api/upload/upload-video', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${localStorage.getItem('employeeToken')}` // Include employee token here
+          'Authorization': `Bearer ${localStorage.getItem('employeeToken')}`
         }
       });
       return response.data.url;
@@ -378,12 +371,21 @@ const BpmnEditor = ({ onSave, diagramToEdit }) => {
           disabled={!diagramToEdit && !isDiagramLoaded}
         />
         <div className="flex space-x-2">
-          <button 
-            onClick={createNewDiagram} 
-            className="bg-blue-500 text-white py-2 px-4 rounded-md transition-all hover:bg-blue-700"
-          >
-            New Diagram
-          </button>
+          {diagramToEdit || isDiagramLoaded ? (
+            <button 
+              onClick={(clearSelection)} 
+              className="bg-red-500 text-white py-2 px-4 rounded-md transition-all hover:bg-red-700"
+            >
+              Clear Selection
+            </button>
+          ) : (
+            <button 
+              onClick={createNewDiagram} 
+              className="bg-blue-500 text-white py-2 px-4 rounded-md transition-all hover:bg-blue-700"
+            >
+              New Diagram
+            </button>
+          )}
           <button 
             onClick={saveDiagram} 
             className={`bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-all ${loading || !diagramName.trim() || !isDiagramLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -391,12 +393,23 @@ const BpmnEditor = ({ onSave, diagramToEdit }) => {
           >
             {loading ? 'Saving...' : 'Save Diagram'}
           </button>
-          <button 
-            onClick={exportDiagram} 
-            className="bg-purple-500 text-white py-2 px-4 rounded-md transition-all hover:bg-purple-700"
-          >
-            Export as PDF
-          </button>
+          <DiagramExporter 
+            modelerRef={modelerRef} 
+            diagramToEdit={diagramToEdit} 
+            diagramName={diagramName} 
+          />
+          {(diagramToEdit || isDiagramLoaded) && (
+            <div className='w-full max-w-2xl mx-auto'>
+              <select 
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+                className='mb-4 p-2 border border-gray-300 rounded w-full'
+              >
+                <option value="">Select Department</option>
+                {renderDepartments(departments)}
+              </select>
+            </div>
+          )}
         </div>
       </div>
       {selectedElement && (

@@ -41,7 +41,7 @@ const EmployeeDashboard = () => {
   }
 
   return (
-    <div className="employee-dashboard p-8 bg-white rounded-lg text-black shadow-lg min-h-screen flex flex-col items-center text-center">
+    <div className="employee-dashboard p-8 bg-white text-black shadow-lg min-h-screen flex flex-col items-center text-center">
       <h1 className="text-2xl font-bold mb-4 text-black w-full">Employee Dashboard</h1>
       {selectedProcess && (
         <div className="w-full h-96 mb-4">

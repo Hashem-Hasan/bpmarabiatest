@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import BpmnEditor from '../components/BpmnEditor';
 import { Button, Input, Spinner } from "@nextui-org/react";
+import Modal from '../components/Modal';
+import { FaEdit, FaTrashAlt, FaCheckCircle, FaTimesCircle } from 'react-icons/fa'; // Import icons
 
 const Home = () => {
   const [diagrams, setDiagrams] = useState([]);
@@ -14,12 +16,14 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [fetchingDiagrams, setFetchingDiagrams] = useState(false);
   const [editorKey, setEditorKey] = useState(Date.now());
-  const [loadingVerification, setLoadingVerification] = useState(null); // New state for verification loading
+  const [loadingVerification, setLoadingVerification] = useState(null); 
   const observer = useRef();
   const isFetching = useRef(false);
 
   const [mainUserToken, setMainUserToken] = useState(null);
   const [employeeToken, setEmployeeToken] = useState(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [diagramToDelete, setDiagramToDelete] = useState(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -73,27 +77,33 @@ const Home = () => {
     }
   };
 
-  const saveDiagram = async ({ id, name, xml }) => {
+  const saveDiagram = async ({ id, name, xml, department }) => {
     const token = mainUserToken || employeeToken;
     setLoading(true);
     try {
       let response;
       if (id) {
-        response = await axios.put(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/${id}`, { name, xml }, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        response = await axios.put(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/${id}`, 
+          { name, xml, department },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
       } else {
-        response = await axios.post(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes`, { name, xml }, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        response = await axios.post(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes`, 
+          { name, xml, department },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
       }
       alert('Diagram saved successfully!');
       const savedDiagram = response.data;
-
+  
       setDiagrams(prevDiagrams => {
         const index = prevDiagrams.findIndex(diagram => diagram._id === savedDiagram._id);
         if (index === -1) {
@@ -115,25 +125,44 @@ const Home = () => {
         }
       });
       setSelectedDiagram(null);
-      // Reset editor by changing the key
       setEditorKey(Date.now());
+      return true; // Return true indicating success
     } catch (err) {
       console.error('Error saving diagram:', err);
+      
+      // Check if the error response is 403
+      if (err.response && err.response.status === 403) {
+        alert(err.response.data.message || 'You do not have permission to perform this action.');
+      } else {
+        alert('An error occurred while saving the diagram. Please try again.');
+      }
+      return false; // Return false indicating failure
     } finally {
       setLoading(false);
     }
   };
+  
+  const handleClearSelection = () => {
+    setSelectedDiagram(null); // Clear the selected diagram
+    setEditorKey(Date.now()); // Reset the editor key to force re-render of the editor
+  };
 
-  const deleteDiagram = async (id) => {
+  const confirmDelete = (id) => {
+    setDiagramToDelete(id);
+    setIsConfirmOpen(true);
+  };
+
+  const deleteDiagram = async () => {
     const token = mainUserToken;
+    setIsConfirmOpen(false);
     setLoading(true);
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/${id}`, {
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/${diagramToDelete}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      const updatedDiagrams = diagrams.filter(diagram => diagram._id !== id);
+      const updatedDiagrams = diagrams.filter(diagram => diagram._id !== diagramToDelete);
       setDiagrams(updatedDiagrams);
       setFilteredDiagrams(updatedDiagrams);
       setSelectedDiagram(null);
@@ -159,6 +188,10 @@ const Home = () => {
   };
 
   const editDiagram = (diagram) => {
+    // Check if the diagram is verified
+    if (diagram.isVerified) {
+      alert('This Process is verified. Unverify it or contact your administrator to unverify it, or your edits will not be saved!');
+    }
     setSelectedDiagram(diagram);
   };
 
@@ -224,7 +257,7 @@ const Home = () => {
   return (
     <div className='bg-white min-h-screen text-center h-auto justify-center text-black'>
       <h1 className='font-bold text-3xl py-4'>Process Editor</h1>
-      <BpmnEditor key={editorKey} onSave={saveDiagram} diagramToEdit={selectedDiagram} />
+      <BpmnEditor key={editorKey} onSave={saveDiagram} onClear={handleClearSelection} diagramToEdit={selectedDiagram} />
       <h2 className='mt-4'>Saved Diagrams</h2>
       <input 
         type='text' 
@@ -244,15 +277,19 @@ const Home = () => {
             if (filteredDiagrams.length === index + 1) {
               return (
                 <li ref={lastDiagramElementRef} key={diagram._id} className='flex justify-between p-2'>
-                  {diagram.name} ({diagram.isVerified ? 'Verified' : 'Not Verified'})
-                  <div>
-                    <button onClick={() => editDiagram(diagram)} className="ml-2 text-blue-500">Edit</button>
+                  {diagram.name} (Version: {diagram.version}) ({diagram.isVerified ? 'Verified' : 'Not Verified'})
+                  <div className="flex flex-row space-x-4"> {/* Align icons in a row */}
+                    <FaEdit onClick={() => editDiagram(diagram)} className="text-blue-500 cursor-pointer" />
                     {mainUserToken && (
                       <>
-                        <button onClick={() => deleteDiagram(diagram._id)} className="ml-2 text-red-500">Delete</button>
-                        <button onClick={() => toggleVerification(diagram._id, diagram.isVerified)} className="ml-2 text-green-500">
-                          {loadingVerification === diagram._id ? <Spinner size="sm" color="warning" /> : (diagram.isVerified ? 'Unverify' : 'Verify')}
-                        </button>
+                        <FaTrashAlt onClick={() => confirmDelete(diagram._id)} className="text-red-500 cursor-pointer" />
+                        {loadingVerification === diagram._id ? (
+                          <Spinner size="sm" color="warning" />
+                        ) : (
+                          diagram.isVerified ? 
+                          <FaTimesCircle onClick={() => toggleVerification(diagram._id, diagram.isVerified)} className="text-yellow-500 cursor-pointer" /> :
+                          <FaCheckCircle onClick={() => toggleVerification(diagram._id, diagram.isVerified)} className="text-green-500 cursor-pointer" />
+                        )}
                       </>
                     )}
                   </div>
@@ -261,15 +298,19 @@ const Home = () => {
             } else {
               return (
                 <li key={diagram._id} className='flex justify-between p-2'>
-                  {diagram.name} ({diagram.isVerified ? 'Verified' : 'Not Verified'})
-                  <div>
-                    <button onClick={() => editDiagram(diagram)} className="ml-2 text-blue-500">Edit</button>
+                  {diagram.name} (Version: {diagram.version}) ({diagram.isVerified ? 'Verified' : 'Not Verified'})
+                  <div className="flex flex-row space-x-4"> {/* Align icons in a row */}
+                    <FaEdit onClick={() => editDiagram(diagram)} className="text-blue-500 cursor-pointer" />
                     {mainUserToken && (
                       <>
-                        <button onClick={() => deleteDiagram(diagram._id)} className="ml-2 text-red-500">Delete</button>
-                        <button onClick={() => toggleVerification(diagram._id, diagram.isVerified)} className="ml-2 text-green-500">
-                          {loadingVerification === diagram._id ? <Spinner size="sm" color="warning" /> : (diagram.isVerified ? 'Unverify' : 'Verify')}
-                        </button>
+                        <FaTrashAlt onClick={() => confirmDelete(diagram._id)} className="text-red-500 cursor-pointer" />
+                        {loadingVerification === diagram._id ? (
+                          <Spinner size="sm" color="warning" />
+                        ) : (
+                          diagram.isVerified ? 
+                          <FaTimesCircle onClick={() => toggleVerification(diagram._id, diagram.isVerified)} className="text-yellow-500 cursor-pointer" /> :
+                          <FaCheckCircle onClick={() => toggleVerification(diagram._id, diagram.isVerified)} className="text-green-500 cursor-pointer" />
+                        )}
                       </>
                     )}
                   </div>
@@ -279,16 +320,16 @@ const Home = () => {
           })}
         </ul>
       </div>
-      {mainUserToken && (
-        <div className="flex w-full justify-center space-x-4 mt-8">
-          <Button className="bg-gray-500 w-1/3 text-white" onClick={() => window.location.href = '/employeesys'}>
-            Back
-          </Button>
-          <Button className="bg-orange-500 w-1/3 text-white" onClick={() => window.location.href = '/ProcessManager'}>
-            Next Step
-          </Button>
-        </div>
-      )}
+
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        title="Confirm Deletion"
+        onConfirm={deleteDiagram}
+      >
+        Are you sure you want to delete this process?
+      </Modal>
     </div>
   );
 };

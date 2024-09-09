@@ -31,10 +31,17 @@ const Login = () => {
         window.location.href = '/Dashboard'; 
       }
     } catch (error) {
-      if (error.response && error.response.status === 400) {
-        setErrorMessage('Password or email is incorrect');
+      if (error.response) {
+        if (error.response.status === 400) {
+          setErrorMessage('Password or email is incorrect');
+        } else if (error.response.status === 403) {
+          setErrorMessage('Your account is disabled, please contact customer service team for support');
+        } else {
+          setErrorMessage('An unexpected error occurred. Please try again later.');
+        }
       } else {
         console.error('Error logging in:', error);
+        setErrorMessage('An unexpected error occurred. Please try again later.');
       }
     } finally {
       setLoading(false); // Stop loading

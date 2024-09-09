@@ -1,8 +1,9 @@
-"use client";
+"use client"
 import React, { useState, useEffect, useRef } from "react";
 import { Button, Input, Spinner } from "@nextui-org/react";
 import { FaPlus, FaEdit, FaTrash, FaSave, FaList, FaSitemap } from "react-icons/fa";
 import axios from "axios";
+import Modal from './Modal';  // Import the custom modal component
 
 const CompanyStructure = () => {
   const [structure, setStructure] = useState([]);
@@ -17,7 +18,10 @@ const CompanyStructure = () => {
     deleteRole: false,
     editRole: false,
   });
-  const [viewMode, setViewMode] = useState("tree"); // Added view mode state
+  const [viewMode, setViewMode] = useState("tree");
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmRole, setConfirmRole] = useState(null);
 
   const containerRef = useRef(null);
 
@@ -52,6 +56,22 @@ const CompanyStructure = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleConfirmation = (action, role) => {
+    setConfirmAction(action);
+    setConfirmRole(role);
+    setIsConfirmOpen(true);
+  };
+
+  const confirmEditRole = () => {
+    setIsConfirmOpen(false);
+    editRole(confirmRole);
+  };
+
+  const confirmDeleteRole = () => {
+    setIsConfirmOpen(false);
+    deleteRole(confirmRole._id);
   };
 
   const addRole = async (parentId) => {
@@ -94,13 +114,13 @@ const CompanyStructure = () => {
     }
   };
 
-  const editRole = async (roleId) => {
+  const editRole = async (role) => {
     setLoadingAction({ ...loadingAction, editRole: true });
     const token = localStorage.getItem("token");
     try {
       await axios.put(
         `${process.env.NEXT_PUBLIC_API_HOST}/api/company-structure/edit-role`,
-        { roleId, name: editRoleName },
+        { roleId: role._id, name: editRoleName },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -109,13 +129,13 @@ const CompanyStructure = () => {
       );
 
       const updateStructure = (roles) => {
-        return roles.map((role) => {
-          if (role._id === roleId) {
-            return { ...role, name: editRoleName };
-          } else if (role.subRoles && role.subRoles.length > 0) {
-            return { ...role, subRoles: updateStructure(role.subRoles) };
+        return roles.map((r) => {
+          if (r._id === role._id) {
+            return { ...r, name: editRoleName };
+          } else if (r.subRoles && r.subRoles.length > 0) {
+            return { ...r, subRoles: updateStructure(r.subRoles) };
           }
-          return role;
+          return r;
         });
       };
 
@@ -189,7 +209,7 @@ const CompanyStructure = () => {
               {role.subRoles?.length === 0 && (
                 <Button
                   className="bg-red-500 text-white mt-2"
-                  onClick={() => deleteRole(role._id)}
+                  onClick={() => handleConfirmation('delete', role)}
                 >
                   {loadingAction.deleteRole ? <Spinner size="sm" color="warning" /> : <FaTrash />}
                 </Button>
@@ -222,7 +242,7 @@ const CompanyStructure = () => {
                   />
                   <Button
                     className="bg-green-500 text-white ml-2"
-                    onClick={() => editRole(role._id)}
+                    onClick={() => handleConfirmation('edit', role)}
                   >
                     {loadingAction.editRole ? <Spinner size="sm" color="warning" /> : <FaSave />}
                   </Button>
@@ -266,7 +286,7 @@ const CompanyStructure = () => {
                 {role.subRoles?.length === 0 && (
                   <Button
                     className="bg-red-500 text-white"
-                    onClick={() => deleteRole(role._id)}
+                    onClick={() => handleConfirmation('delete', role)}
                   >
                     {loadingAction.deleteRole ? <Spinner size="sm" color="warning" /> : <FaTrash />}
                   </Button>
@@ -301,7 +321,7 @@ const CompanyStructure = () => {
                 />
                 <Button
                   className="bg-green-500 text-white ml-2"
-                  onClick={() => editRole(role._id)}
+                  onClick={() => handleConfirmation('edit', role)}
                 >
                   {loadingAction.editRole ? <Spinner size="sm" color="warning" /> : <FaSave />}
                 </Button>
@@ -372,6 +392,18 @@ const CompanyStructure = () => {
           )}
         </>
       )}
+
+      {/* Confirmation Modal */}
+      <Modal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        title={confirmAction === "delete" ? "Delete Role" : "Edit Role"}
+        onConfirm={
+          confirmAction === "delete" ? confirmDeleteRole : confirmEditRole
+        }
+      >
+        Are you sure you want to {confirmAction} this role?
+      </Modal>
     </div>
   );
 };
