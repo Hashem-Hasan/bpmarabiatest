@@ -16,6 +16,14 @@ const employeeSchema = new mongoose.Schema({
 
 employeeSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
+
+  // Check if the password is already hashed
+  const isHashed = this.password.startsWith('$2b$');
+  if (isHashed) {
+    return next();
+  }
+
+  // Hash the password only if it is not hashed
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();

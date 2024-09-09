@@ -4,9 +4,12 @@ const Employee = require('../models/Employee');
 const User = require('../models/user');
 const authenticateToken = require('../middleware/authenticateToken');
 const authenticateEmployeeToken = require('../middleware/authenticateEmployeeToken');
+
 const jwt = require('jsonwebtoken');
 
 const router = express.Router();
+
+
 
 // Helper function to create a log entry
 const createLogEntry = async (userId, action, userModel) => {
@@ -66,9 +69,18 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// Create a new BPMN diagram by the main user or employee
 router.post('/', authenticate, async (req, res) => {
-  const { name, xml } = req.body;
+  // Log the entire request body as a string for detailed inspection
+  console.log('Raw Request Body:', JSON.stringify(req.body, null, 2));
+
+  // Destructure the expected fields from the request body
+  const { name, xml, department } = req.body;
+
+  // Log each field individually for further clarity
+  console.log('Received Name:', name); 
+  console.log('Received XML:', xml);
+  console.log('Received Department:', department); // This will show if department is truly undefined or has an unexpected value
+
   const userId = req.user?.userId || req.employee?._id;
   const userModel = req.user ? 'User' : 'Employee';
 
@@ -86,9 +98,10 @@ router.post('/', authenticate, async (req, res) => {
     }
   }
 
-  console.log('Creating new BPMN diagram...');
+  console.log('Creating or updating BPMN diagram...');
   console.log('Name:', name);
   console.log('XML:', xml);
+  console.log('Department:', department); // Log the department again to confirm it's correctly destructured
   console.log('User ID:', userId);
   console.log('User Model:', userModel);
   console.log('Creator ID:', creatorId);
@@ -98,26 +111,54 @@ router.post('/', authenticate, async (req, res) => {
     return res.status(500).send({ message: 'Creator ID is undefined' });
   }
 
+  if (!department) {
+    console.error('Department is required and was not provided or was undefined');
+    return res.status(400).send({ message: 'Department is required' });
+  }
+
   try {
-    const logEntry = await createLogEntry(userId, 'created', userModel);
+    const logEntry = {
+      userId,
+      userEmail: req.user?.email || req.employee?.email,
+      action: 'created',
+    };
+
+    // Check if diagram already exists by name (or another identifier)
+    let updatedDiagram = await BpmnModel.findOneAndUpdate(
+      { name }, // Find the diagram by name or any unique field
+      {
+        name,
+        xml,
+        department, // Explicitly update department field
+        $push: { logs: logEntry }, // Append log entry to logs array
+      },
+      { new: true, upsert: false } // Return the updated document
+    );
+
+    if (updatedDiagram) {
+      console.log('BPMN diagram updated successfully:', JSON.stringify(updatedDiagram, null, 2));
+      return res.status(200).send(updatedDiagram);
+    }
+
+    // If diagram does not exist, create a new one
     const newDiagram = new BpmnModel({
       name,
       xml,
       creator: creatorId,
       owners: [userId],
       logs: [logEntry],
-      isVerified: !!req.user // Verified if created by main user, false otherwise
+      department, // Save the department here
+      isVerified: !!req.user, // Verified if created by main user, false otherwise
     });
 
     await newDiagram.save();
-    console.log('BPMN diagram saved successfully');
+    console.log('BPMN diagram saved successfully:', JSON.stringify(newDiagram, null, 2)); // Log the saved diagram in detail
     res.status(201).send(newDiagram);
   } catch (error) {
     console.error('Error saving BPMN diagram:', error);
     res.status(500).send({ message: 'Error saving BPMN diagram', error });
   }
 });
-
 
 
 // Get all BPMN diagrams created by the logged-in main user (for main token)
@@ -177,7 +218,7 @@ router.get('/:id', authenticate, async (req, res) => {
 // Update a BPMN diagram by ID (ensure it's owned by the logged-in employee or created by the logged-in main user)
 router.put('/:id', authenticate, async (req, res) => {
   const { id } = req.params;
-  const { name, xml, ownerIds, assignedRoles } = req.body;
+  const { name, xml, ownerIds, assignedRoles, department } = req.body; // Include department here
 
   let userId, userModel;
   if (req.user) {
@@ -196,6 +237,11 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(404).send({ message: 'Diagram not found' });
     }
 
+    // Check if the diagram is verified
+    if (diagram.isVerified) {
+      return res.status(403).send({ message: 'The Verified processes cannot be edited, please unverify it to save' });
+    }
+
     // Ensure the logged-in user is either the creator or one of the owners
     if (diagram.creator?.toString() !== userId.toString() && !diagram.owners.includes(userId)) {
       return res.status(403).send({ message: 'Permission denied' });
@@ -205,9 +251,16 @@ router.put('/:id', authenticate, async (req, res) => {
     diagram.name = name || diagram.name;
     diagram.xml = xml || diagram.xml;
     diagram.assignedRoles = assignedRoles || diagram.assignedRoles;
+
+    // Update the department field if provided
+    if (department) {
+      diagram.department = department;
+    }
+
     if (ownerIds && ownerIds.length > 0) {
       diagram.owners = Array.from(new Set([...diagram.owners, ...ownerIds])); // Merge existing and new owners
     }
+
     const logEntry = await createLogEntry(userId, 'updated', userModel);
     diagram.logs.push(logEntry);
 
@@ -227,6 +280,7 @@ router.put('/:id', authenticate, async (req, res) => {
     res.status(500).send({ message: 'Error updating BPMN diagram', error });
   }
 });
+
 
 // Delete a BPMN diagram by ID (only allow main user)
 router.delete('/:id', authenticateToken, async (req, res) => {
@@ -289,6 +343,36 @@ router.put('/remove-owner/:id', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error removing owner from BPMN diagram:', error);
     res.status(500).send({ message: 'Error removing owner from BPMN diagram', error });
+  }
+});
+
+// Assign a department to a BPMN diagram by ID
+router.put('/assign-department/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { departmentId } = req.body;
+  const userId = req.user.userId;
+
+  try {
+    const diagram = await BpmnModel.findById(id);
+    if (!diagram) {
+      return res.status(404).send({ message: 'Diagram not found' });
+    }
+
+    // Ensure the logged-in user is the creator
+    if (diagram.creator.toString() !== userId.toString()) {
+      return res.status(403).send({ message: 'Permission denied' });
+    }
+
+    diagram.department = departmentId;
+    const logEntry = await createLogEntry(userId, 'assigned department', 'User');
+    diagram.logs.push(logEntry);
+
+    await diagram.save();
+
+    res.status(200).send(diagram);
+  } catch (error) {
+    console.error('Error assigning department to BPMN diagram:', error);
+    res.status(500).send({ message: 'Error assigning department to BPMN diagram', error });
   }
 });
 

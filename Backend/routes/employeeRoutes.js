@@ -13,9 +13,14 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const employee = await Employee.findOne({ email });
+    const employee = await Employee.findOne({ email }).populate('company');
     if (!employee) {
       return res.status(400).send({ message: 'Password or email is incorrect' });
+    }
+
+    // Check if the associated company is activated
+    if (!employee.company.isActivated) {
+      return res.status(403).send({ message: 'Your account is disabled, please contact customer service team for support' });
     }
 
     const validPassword = await bcrypt.compare(password, employee.password);
@@ -60,16 +65,28 @@ router.put('/update', authenticateEmployeeToken, async (req, res) => {
       return res.status(404).send({ message: 'Employee not found' });
     }
 
+    // Verify the old password
     const validPassword = await bcrypt.compare(oldPassword, employee.password);
     if (!validPassword) {
       return res.status(400).send({ message: 'Invalid old password' });
     }
 
+    // Update the phone number if provided
     employee.phoneNumber = phoneNumber || employee.phoneNumber;
+
+    // Update the password if a new password is provided
     if (newPassword) {
-      employee.password = await bcrypt.hash(newPassword, 10);
+      // Check if the new password is different from the old password
+      const isSamePassword = await bcrypt.compare(newPassword, employee.password);
+      if (isSamePassword) {
+        return res.status(400).send({ message: 'New password cannot be the same as the old password' });
+      }
+
+      // Assign the new password directly (hashing is handled by the schema)
+      employee.password = newPassword;
     }
 
+    // Save the updated employee info
     await employee.save();
     res.status(200).send({ message: 'Employee info updated successfully' });
   } catch (error) {
@@ -77,6 +94,7 @@ router.put('/update', authenticateEmployeeToken, async (req, res) => {
     res.status(500).send({ message: 'Error updating employee info', error });
   }
 });
+
 
 // Get employee tasks based on role
 router.get('/tasks', authenticateEmployeeToken, async (req, res) => {
