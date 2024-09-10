@@ -118,7 +118,7 @@ const AdminDashboard = () => {
           className="w-full md:w-1/3 p-4"
           onClick={() => window.location.href = "/RolesAssigner"}
         >
-          <CardHeader><h2>Roles Linking Management</h2></CardHeader>
+          <CardHeader><h2>Process Mapping</h2></CardHeader>
         </Card>
         <Card
           isPressable
