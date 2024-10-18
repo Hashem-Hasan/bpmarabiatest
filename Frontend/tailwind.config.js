@@ -1,4 +1,5 @@
-const {nextui} = require('@nextui-org/theme');
+const { nextui } = require('@nextui-org/theme');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -9,6 +10,9 @@ module.exports = {
   ],
   theme: {
     extend: {
+      colors: {
+        primary: "#1C997F", // Define the primary color for Tailwind and NextUI
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic":
@@ -17,5 +21,20 @@ module.exports = {
     },
   },
   darkMode: "class",
-  plugins: [nextui()],
+  plugins: [
+    nextui({
+      themes: {
+        light: {
+          colors: {
+            primary: "#1C997F", // Custom primary color for NextUI
+          },
+        },
+        dark: {
+          colors: {
+            primary: "#1C997F", // Custom primary color for NextUI dark mode
+          },
+        },
+      },
+    }),
+  ],
 };

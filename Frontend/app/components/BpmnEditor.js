@@ -8,6 +8,15 @@ import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
 import DiagramExporter from './DiagramExporter';
+import { FaBars } from 'react-icons/fa';
+import Image from 'next/image';
+import { Button, Input, Card } from '@nextui-org/react';
+import { Plus } from 'react-feather';
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import ProcessList from './ProcessList';
+import { Listbox } from '@headlessui/react';
+import { CheckIcon, SelectorIcon } from '@heroicons/react/solid'; // Importing icons
 
 const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
   const modelerRef = useRef(null);
@@ -24,12 +33,24 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
   const [newComment, setNewComment] = useState('');
   const [departments, setDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false); // For handling dropdown state
+
+  const [mainUserToken, setMainUserToken] = useState(null);
+  const [employeeToken, setEmployeeToken] = useState(null);
+  const [selectedDiagram, setSelectedDiagram] = useState(diagramToEdit);
 
   useEffect(() => {
-    if (diagramToEdit || isDiagramLoaded) {
+    if (typeof window !== 'undefined') {
+      setMainUserToken(localStorage.getItem('token'));
+      setEmployeeToken(localStorage.getItem('employeeToken'));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedDiagram || isDiagramLoaded) {
       fetchDepartments();
     }
-  }, [diagramToEdit, isDiagramLoaded]);
+  }, [selectedDiagram, isDiagramLoaded]);
 
   const fetchDepartments = async () => {
     const token = localStorage.getItem('token') || localStorage.getItem('employeeToken');
@@ -41,21 +62,58 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       });
       setDepartments(response.data.departments);
 
-      if (diagramToEdit && diagramToEdit.department) {
-        setSelectedDepartment(diagramToEdit.department);
+      if (selectedDiagram && selectedDiagram.department) {
+        setSelectedDepartment(selectedDiagram.department);
       }
     } catch (err) {
       console.error('Error fetching departments:', err);
     }
   };
 
-  const renderDepartments = (departments, prefix = '') => {
-    return departments.map(department => (
+  const getDepartmentNameById = (id, departmentsList = departments) => {
+    for (const department of departmentsList) {
+      if (department._id === id) {
+        return department.name;
+      } else if (department.subDepartments) {
+        const name = getDepartmentNameById(id, department.subDepartments);
+        if (name) return name;
+      }
+    }
+    return '';
+  };
+
+  const renderDepartmentOptions = (departments, level = 0) => {
+    return departments.map((department) => (
       <React.Fragment key={department._id}>
-        <option value={department._id}>
-          {prefix}{department.name}
-        </option>
-        {department.subDepartments && renderDepartments(department.subDepartments, `${prefix}--`)}
+        <Listbox.Option
+          className={({ active }) =>
+            `relative cursor-default select-none py-2 pl-${4 + level * 2} pr-4 ${
+              active ? 'bg-indigo-600 text-white' : 'text-gray-900'
+            }`
+          }
+          value={department._id}
+        >
+          {({ selected, active }) => (
+            <>
+              <span
+                className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}
+              >
+                {'-'.repeat(level * 2) + department.name}
+              </span>
+              {selected ? (
+                <span
+                  className={`absolute inset-y-0 left-0 flex items-center pl-3 ${
+                    active ? 'text-white' : 'text-indigo-600'
+                  }`}
+                >
+                  <CheckIcon className="h-5 w-5" aria-hidden="true" />
+                </span>
+              ) : null}
+            </>
+          )}
+        </Listbox.Option>
+        {department.subDepartments &&
+          renderDepartmentOptions(department.subDepartments, level + 1)}
       </React.Fragment>
     ));
   };
@@ -67,8 +125,8 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       additionalModules: [
         {
           __init__: ['customPaletteProvider'],
-          customPaletteProvider: ['type', CustomPaletteProvider]
-        }
+          customPaletteProvider: ['type', CustomPaletteProvider],
+        },
       ],
     });
 
@@ -82,13 +140,13 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
   }, []);
 
   useEffect(() => {
-    if (diagramToEdit) {
-      setDiagramName(diagramToEdit.name);
-      setDiagramId(diagramToEdit._id);
-      importDiagram(diagramToEdit.xml);
-      fetchCompanyDetails(diagramToEdit.creator);
+    if (selectedDiagram) {
+      setDiagramName(selectedDiagram.name);
+      setDiagramId(selectedDiagram._id);
+      importDiagram(selectedDiagram.xml);
+      fetchCompanyDetails(selectedDiagram.creator);
     }
-  }, [diagramToEdit]);
+  }, [selectedDiagram]);
 
   const fetchCompanyDetails = async (creatorId) => {
     try {
@@ -144,12 +202,12 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       alert('Diagram name is required');
       return;
     }
-  
+
     if (!selectedDepartment) {
       alert('Please select a department');
       return;
     }
-  
+
     try {
       const { xml } = await modelerRef.current.saveXML({ format: true });
       if (!xml || xml.trim().length === 0) {
@@ -157,25 +215,25 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
         return;
       }
       setLoading(true);
-  
+
       const payload = {
         id: diagramId,
         name: diagramName,
         xml,
         department: selectedDepartment,
       };
-  
+
       console.log('Submitting payload:', payload);
-  
+
       if (onSave) {
         const success = await onSave(payload); // Wait for onSave to complete and check its result
         if (success) {
-          onClear(); // Call the clear handler from parent only if save was successful
+          clearSelection(); // Call clearSelection instead of onClear
         }
       }
     } catch (err) {
       console.error('Error saving BPMN diagram:', err);
-  
+
       // Check if the error response is 403
       if (err.response && err.response.status === 403) {
         alert(err.response.data.message || 'You do not have permission to perform this action.');
@@ -186,8 +244,6 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       setLoading(false);
     }
   };
-  
-  
 
   const clearSelection = async () => {
     setDiagramName('');
@@ -199,12 +255,13 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     setAttachments([]);
     setComments([]);
     setSelectedDepartment('');
-    
+    setSelectedDiagram(null);
+
     // Destroy the existing modeler instance
     if (modelerRef.current) {
       modelerRef.current.destroy();
     }
-  
+
     // Recreate a new instance of the modeler
     modelerRef.current = new BpmnModeler({
       container: '#bpmn-container',
@@ -212,23 +269,37 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       additionalModules: [
         {
           __init__: ['customPaletteProvider'],
-          customPaletteProvider: ['type', CustomPaletteProvider]
-        }
+          customPaletteProvider: ['type', CustomPaletteProvider],
+        },
       ],
     });
-  
+
     // Add event listeners back to the new instance
     modelerRef.current.on('element.click', handleElementClick);
-  
-    onClear(); // Call clear handler to sync with parent state
+
+    if (onClear) {
+      onClear(); // Call clear handler to sync with parent state
+    }
   };
-  
+
   const handleElementClick = (event) => {
     const element = event.element;
-    if (element.type === 'bpmn:Task' || element.type === 'bpmn:StartEvent' || element.type === 'bpmn:EndEvent') {
+    if (
+      element.type === 'bpmn:Task' ||
+      element.type === 'bpmn:StartEvent' ||
+      element.type === 'bpmn:EndEvent'
+    ) {
       setSelectedElement(element);
-      setAttachments(element.businessObject.$attrs.attachments ? JSON.parse(element.businessObject.$attrs.attachments) : []);
-      setComments(element.businessObject.$attrs.comments ? JSON.parse(element.businessObject.$attrs.comments) : []);
+      setAttachments(
+        element.businessObject.$attrs.attachments
+          ? JSON.parse(element.businessObject.$attrs.attachments)
+          : []
+      );
+      setComments(
+        element.businessObject.$attrs.comments
+          ? JSON.parse(element.businessObject.$attrs.comments)
+          : []
+      );
     } else {
       setSelectedElement(null);
       setAttachments([]);
@@ -255,7 +326,7 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
         newAttachments.push({
           name: file.name,
           url: uploadUrl,
-          type: file.type
+          type: file.type,
         });
       }
 
@@ -285,12 +356,16 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     formData.append('video', file);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/upload/upload-video', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${localStorage.getItem('employeeToken')}`
+      const response = await axios.post(
+        'http://localhost:3001/api/upload/upload-video',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${localStorage.getItem('employeeToken')}`,
+          },
         }
-      });
+      );
       return response.data.url;
     } catch (err) {
       console.error('Error uploading video to backend:', err);
@@ -302,7 +377,9 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     if (selectedElement) {
       const modeling = modelerRef.current.get('modeling');
       const businessObject = selectedElement.businessObject;
-      const existingAttachments = businessObject.$attrs.attachments ? JSON.parse(businessObject.$attrs.attachments) : [];
+      const existingAttachments = businessObject.$attrs.attachments
+        ? JSON.parse(businessObject.$attrs.attachments)
+        : [];
 
       const updatedAttachments = [...existingAttachments, ...newAttachments];
       businessObject.$attrs.attachments = JSON.stringify(updatedAttachments);
@@ -317,7 +394,9 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     if (selectedElement) {
       const modeling = modelerRef.current.get('modeling');
       const businessObject = selectedElement.businessObject;
-      const existingAttachments = businessObject.$attrs.attachments ? JSON.parse(businessObject.$attrs.attachments) : [];
+      const existingAttachments = businessObject.$attrs.attachments
+        ? JSON.parse(businessObject.$attrs.attachments)
+        : [];
 
       existingAttachments.splice(index, 1);
       businessObject.$attrs.attachments = JSON.stringify(existingAttachments);
@@ -357,129 +436,269 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     }
   };
 
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen);
+  };
+
   return (
-    <div className="flex flex-col items-center">
-      <div id="bpmn-container" className="w-full h-96 border border-gray-300 mb-4"></div>
-      <div className="w-full flex flex-col items-center">
-        <input 
-          type="text" 
-          required
-          value={diagramName} 
-          onChange={(e) => setDiagramName(e.target.value)} 
-          placeholder="Enter diagram name" 
-          className="mb-2 p-2 border border-gray-300 transition-all rounded-md w-1/2"
-          disabled={!diagramToEdit && !isDiagramLoaded}
+    <div className="flex flex-row-reverse gap-3 justify-center pt-14 items-center">
+      <div className="flex flex-col items-center ">
+      <div className="  w-[200px]  p-6 flex flex-col h-[600px]">
+  {selectedElement ? (
+    <>
+      <h3 className="text-2xl font-bold mb-3">Attachments</h3>
+      <Button
+        auto
+        flat
+        as="label"
+        htmlFor="file-upload"
+        className="mb-4 w-full"
+      >
+        Upload Files
+        <input
+          type="file"
+          id="file-upload"
+          multiple
+          onChange={handleFileUpload}
+          style={{ display: 'none' }}
         />
-        <div className="flex space-x-2">
-          {diagramToEdit || isDiagramLoaded ? (
-            <button 
-              onClick={(clearSelection)} 
-              className="bg-red-500 text-white py-2 px-4 rounded-md transition-all hover:bg-red-700"
-            >
-              Clear Selection
-            </button>
-          ) : (
-            <button 
-              onClick={createNewDiagram} 
-              className="bg-blue-500 text-white py-2 px-4 rounded-md transition-all hover:bg-blue-700"
-            >
-              New Diagram
-            </button>
-          )}
-          <button 
-            onClick={saveDiagram} 
-            className={`bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-all ${loading || !diagramName.trim() || !isDiagramLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={loading || !diagramName.trim() || !isDiagramLoaded}
-          >
-            {loading ? 'Saving...' : 'Save Diagram'}
-          </button>
-          <DiagramExporter 
-            modelerRef={modelerRef} 
-            diagramToEdit={diagramToEdit} 
-            diagramName={diagramName} 
-          />
-          {(diagramToEdit || isDiagramLoaded) && (
-            <div className='w-full max-w-2xl mx-auto'>
-              <select 
-                value={selectedDepartment}
-                onChange={(e) => setSelectedDepartment(e.target.value)}
-                className='mb-4 p-2 border border-gray-300 rounded w-full'
-              >
-                <option value="">Select Department</option>
-                {renderDepartments(departments)}
-              </select>
-            </div>
-          )}
-        </div>
-      </div>
-      {selectedElement && (
-        <div className="w-full flex flex-col items-center mt-4">
-          <h3 className="text-lg font-semibold">Attachments</h3>
-          <input 
-            type="file"
-            multiple
-            onChange={handleFileUpload}
-            className="mb-2 p-2 border border-gray-300 transition-all rounded-md w-1/2"
-          />
-          {uploading && (
-            <div className="flex justify-center items-center mt-2">
-              <Spinner size="lg" color="warning" />
-            </div>
-          )}
-          {attachments.length > 0 ? (
-            <ul className="list-disc">
-              {attachments.map((attachment, index) => (
-                <li key={index} className="flex items-center space-x-2">
-                  <a href={attachment.url} target="_blank" rel="noopener noreferrer">
-                    {attachment.name}
-                  </a>
-                  <button
-                    onClick={() => handleAttachmentDelete(index)}
-                    className="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No attachments</p>
-          )}
-          <h3 className="text-lg font-semibold mt-4">Comments</h3>
-          <div className="mb-2 p-2 border border-gray-300 transition-all rounded-md w-1/2">
-            <input 
-              type="text" 
-              value={newComment} 
-              onChange={(e) => setNewComment(e.target.value)} 
-              placeholder="Enter comment" 
-              className="w-full p-2 border border-gray-300 rounded"
-            />
-            <button 
-              onClick={handleAddComment} 
-              className="bg-blue-500 text-white py-2 px-4 rounded-md transition-all hover:bg-blue-700 mt-2"
-            >
-              Add Comment
-            </button>
-          </div>
-          {comments.length > 0 ? (
-            <ul className="list-disc w-1/2">
-              {comments.map((comment, index) => (
-                <li key={index} className="flex justify-between items-center p-2 border-b border-gray-300">
-                  <span>{comment}</span>
-                  <button
-                    onClick={() => handleCommentDelete(index)}
-                    className="bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No comments</p>
-          )}
+      </Button>
+      {uploading && (
+        <div className="flex justify-center items-center mt-4">
+          {/* Replace with your Spinner component */}
+          <Spinner size="lg" color="primary" />
         </div>
       )}
+      {attachments.length > 0 ? (
+        <ul className="mb-4">
+          {attachments.map((attachment, index) => (
+            <li
+              key={index}
+              className="flex items-center justify-between py-2 border-b border-gray-200"
+            >
+              <a
+                href={attachment.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                {attachment.name}
+              </a>
+              <Button
+                auto
+                flat
+                color="error"
+                onClick={() => handleAttachmentDelete(index)}
+              >
+                Delete
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-gray-500 mb-4">No attachments</p>
+      )}
+      <h3 className="text-2xl border-t border-gray-300 pt-5 font-bold mb-4">
+        Comments
+      </h3>
+      {/* Scrollable Comments Section */}
+      <div className="flex-1 overflow-y-auto mb-4">
+        {comments.length > 0 ? (
+          <AnimatePresence>
+            {comments.map((comment, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-3"
+              >
+                <div className="border rounded-md shadow-sm">
+                  <div className="flex justify-between items-center p-3">
+                    <span className="break-words overflow-hidden">
+                      {comment}
+                    </span>
+                    <Button
+                      auto
+                      flat
+                      color="error"
+                      onClick={() => handleCommentDelete(index)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        ) : (
+          <p className="text-gray-500">No comments yet</p>
+        )}
+      </div>
+      {/* Comment Input */}
+      <div className="flex items-center">
+        <Input
+          clearable
+          underlined
+          fullWidth
+          placeholder="Enter comment"
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault(); // Prevent form submission if inside a form
+              handleAddComment();
+            }
+          }}
+        />
+      </div>
+    </>
+  ) : (
+    <div className="text-center text-gray-500">
+      <p className="text-xl">No element selected</p>
+    </div>
+  )}
+</div>
+
+      </div>
+
+      <div
+        id="bpmn-container"
+        className="w-[1200px] h-[600px] shadow-lg  rounded-2xl border-gray-300 mb-4"
+      ></div>
+
+      <div className="flex w-[250px] h-[590px] flex-col">
+        <div className="flex flex-col bg-white shadow-md p-3 border-1 border-gray-300 rounded-lg mb-6">
+          {/* Flex row containing diagram name input and dropdown menu icon */}
+          <div className="flex flex-row-reverse items-center">
+            <input
+              type="text"
+              required
+              value={diagramName}
+              onChange={(e) => setDiagramName(e.target.value)}
+              placeholder="Enter diagram name"
+              className="mb-2 p-2 shadow-sm transition-all rounded-md w-full"
+              disabled={!selectedDiagram && !isDiagramLoaded}
+            />
+            {/* Dropdown Button */}
+            <div className="relative mr-2">
+              <button
+                onClick={toggleDropdown}
+                className="flex items-center space-x-2"
+              >
+                {/* Replace FaBars with your custom image */}
+                <Image src="/Group 1.png" alt="Group 1" width={25} height={25} />
+                {/* Toggle Arrow Icon */}
+                {dropdownOpen ? (
+                  <FaChevronUp className="text-xl" />
+                ) : (
+                  <FaChevronDown className="text-xl" />
+                )}
+              </button>
+
+              {/* Dropdown Menu */}
+              <AnimatePresence>
+                {dropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 mt-2 w-48 bg-white shadow-md border rounded-md z-10"
+                  >
+                    <ul className="flex flex-col p-2 space-y-2">
+                      {selectedDiagram || isDiagramLoaded ? (
+                        <li>
+                          <button
+                            onClick={clearSelection}
+                            className="w-full text-center text-gray-500 py-2 px-4 rounded-md transition-all hover:bg-gray-200"
+                          >
+                            Clear Selection
+                          </button>
+                        </li>
+                      ) : (
+                        <li>
+                          <button
+                            onClick={createNewDiagram}
+                            className="w-full text-center text-gray-500 py-2 px-4 rounded-md transition-all hover:bg-gray-200"
+                          >
+                            New Diagram
+                          </button>
+                        </li>
+                      )}
+                      <li>
+                        <button
+                          onClick={saveDiagram}
+                          className={`w-full text-center text-gray-500 py-2 px-4 rounded-md hover:bg-gray-200 transition-all ${
+                            loading || !diagramName.trim() || !isDiagramLoaded
+                              ? 'opacity-50 cursor-not-allowed'
+                              : ''
+                          }`}
+                          disabled={loading || !diagramName.trim() || !isDiagramLoaded}
+                        >
+                          {loading ? 'Saving...' : 'Save Diagram'}
+                        </button>
+                      </li>
+                      <li>
+                        <DiagramExporter
+                          modelerRef={modelerRef}
+                          diagramToEdit={selectedDiagram}
+                          diagramName={diagramName}
+                        />
+                      </li>
+                    </ul>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            {/* Dropdown ends */}
+          </div>
+
+          {/* Diagram name and department in a flex column */}
+          {(selectedDiagram || isDiagramLoaded) && (
+            <div className="w-full max-w-2xl mx-auto ">
+              <Listbox value={selectedDepartment} onChange={setSelectedDepartment}>
+                {({ open }) => (
+                  <>
+                    {/* Removed the Listbox.Label to have the "Select Department" text as default option */}
+                    <div className="relative">
+                      <Listbox.Button className="relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <span className="block truncate">
+                          {getDepartmentNameById(selectedDepartment) || 'Select Department'}
+                        </span>
+                        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                          <SelectorIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                        </span>
+                      </Listbox.Button>
+
+                      <AnimatePresence>
+                        {open && (
+                          <Listbox.Options
+                            static
+                            as={motion.ul}
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+                          >
+                            {renderDepartmentOptions(departments)}
+                          </Listbox.Options>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </>
+                )}
+              </Listbox>
+            </div>
+          )}
+        </div>
+
+        {/* Include ProcessList component under this section */}
+        <ProcessList
+          onDiagramSelect={setSelectedDiagram}
+          mainUserToken={mainUserToken}
+          employeeToken={employeeToken}
+        />
+      </div>
     </div>
   );
 };

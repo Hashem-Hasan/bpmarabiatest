@@ -2,116 +2,129 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { Spinner } from '@nextui-org/react';
 
 const EmployeeLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const employeeToken = localStorage.getItem('employeeToken');
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      const employeeToken = localStorage.getItem('employeeToken');
 
-    if (token || employeeToken) {
-      router.push('/');
+      // Redirect to the appropriate dashboard if a token or employee token is found
+      if (token) {
+        router.push('/Dashboard');
+      } else if (employeeToken) {
+        router.push('/employee-dashboard');
+      }
+
+      // Prevent scrolling
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'auto';
+      };
     }
   }, [router]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setErrorMessage(''); // Reset error message
+    setErrorMessage('');
+    setLoading(true);
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_HOST}/api/employeess/login`, { email, password });
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_HOST}/api/employeess/login`, {
+        email,
+        password,
+        companyName,
+      });
       if (response.status === 200) {
-        console.log('Login Response:', response.data); // Add this line for debugging
-        localStorage.setItem('employeeToken', response.data.token); // Save token to local storage
-        window.location.href = '/employee-dashboard'; // Redirect to employee dashboard
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('employeeToken', response.data.token);
+        }
+        router.push('/employee-dashboard'); // Redirect to employee dashboard after login
       }
     } catch (error) {
-      if (error.response && error.response.status === 400) {
-        setErrorMessage('Password or email is incorrect');
-      } else if (error.response && error.response.status === 403) {
-        setErrorMessage('Your account is disabled, please contact your system administrator for support');
+      if (error.response) {
+        if (error.response.status === 400) {
+          setErrorMessage('Password, email, or company name is incorrect');
+        } else if (error.response.status === 403) {
+          setErrorMessage('Your account is disabled, please contact your system administrator for support');
+        } else {
+          setErrorMessage('An unexpected error occurred. Please try again later.');
+        }
       } else {
-        console.error('Error logging in:', error);
-        setErrorMessage('An error occurred, please contact your system administrator');
+        setErrorMessage('An unexpected error occurred. Please try again later.');
       }
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Return null or a loading spinner if the page shouldn't render due to an existing token
+  if (typeof window !== 'undefined' && (localStorage.getItem('token') || localStorage.getItem('employeeToken'))) {
+    return null; // Prevent the page from rendering if a token is found
+  }
+
   return (
-    <div className="relative flex items-center justify-center min-h-screen bg-gradient-to-r from-white to-orange-100 overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-full h-full flex flex-col justify-center items-center -space-y-10">
-          {Array.from({ length: 6 }, (_, i) => (
-            <div
-              key={i}
-              className={`whitespace-nowrap text-[12rem] font-bold ${i % 2 === 0 ? 'animation-background-1' : 'animation-background-2'}`}
-            >
-              {Array.from({ length: 50 }, (_, j) => (
-                <span
-                  key={j}
-                  className={`${j % 2 === 0 ? 'text-orange-200' : 'text-transparent'}`}
-                  style={j % 2 !== 0 ? { WebkitTextStroke: '1px #F97316', WebkitTextStrokeWidth: '2px' } : {}}
-                >
-                  Login
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
+    <div className="flex items-center justify-center h-screen bg-cover bg-center text-black overflow-hidden"
+         style={{ backgroundImage: `url('https://s3-alpha-sig.figma.com/img/4d2f/74a5/053ec6179a7e5f4edef49e6efdd2115d?Expires=1729468800&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4&Signature=qWUYEdVqHqPT963FTuaBbi3yzsYZvIZFGnZ3N5Lu8m7W0oWHxHyR4T1diM8LzJ7M4iesXPbXCNDhaKhRo2XYDvaf5JSTFOPIDRODGLWI9QD~wMUYsSpfAA175J5VdEgjW8bg0T716uo~jKRz2DqKW6VEKyocUKYwfha4ecwXgaNfSQMzjELzXdyZc9Td~QBUqPCgoHzGtRBNtO82iV2RLKlSkjwiAHmKNS8E~l1ZInJf8WLEj~uJkcLTH5JEvTQ-MwQiOvohXaW1--ysikY~39HAjKZ8T~ZgmAcwHtRzycA4bwGiCtZ61d3W95ER6SIgEMRq~qVxFWGrzPRoGO7hzQ__')` }}
+    >
+      <div className="flex flex-col justify-center items-center w-full max-w-xl h-[650px] bg-white bg-opacity-50 rounded-3xl p-10 shadow-lg backdrop-filter backdrop-blur-md">
+        <h2 className="text-4xl font-bold text-center text-[#1C997F] mb-6">WE MADE YOUR TASKS EASY</h2>
+        <p className="text-center text-gray-600 mb-6">Provide a network for all your needs with ease and fun using BPM Arabia.</p>
+
+        {/* Error Message */}
+        {errorMessage && <p className="text-red-500 text-center mb-6">{errorMessage}</p>}
+
+        {/* Login Form */}
+        <form onSubmit={handleLogin} className="space-y-6 w-full">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="Enter your employee email address"
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 bg-transparent rounded-xl shadow-sm focus:outline-none focus:ring-[#1C997F] focus:border-[#1C997F]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="Enter your employee password"
+              className="mt-1 block w-full px-4 py-2 border bg-transparent border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-[#1C997F] focus:border-[#1C997F]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Company Name</label>
+            <input
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              required
+              placeholder="Enter your company name"
+              className="mt-1 block w-full px-4 py-2 border bg-transparent border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-[#1C997F] focus:border-[#1C997F]"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 bg-[#1C997F] text-white rounded-full shadow hover:bg-[#168b70] transition-colors"
+          >
+            {loading ? <Spinner size="sm" color="white" /> : 'Log in'}
+          </button>
+        </form>
       </div>
-      <div className="relative z-10 w-full max-w-xl p-5 xl:scale-125 text-black">
-        <div className="relative z-10 bg-white p-8 rounded-lg shadow-lg">
-          <h2 className="text-2xl font-bold text-center text-orange-500 mb-6">Employee Login</h2>
-          {errorMessage && <p className="text-red-500 text-center mb-6">{errorMessage}</p>}
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full transition-all flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-            >
-              Login
-            </button>
-          </form>
-        </div>
-      </div>
-      <style jsx>{`
-        .animation-background-1 {
-          animation: scrollBackground1 120s linear infinite;
-        }
-        .animation-background-2 {
-          animation: scrollBackground2 120s linear infinite;
-        }
-        @keyframes scrollBackground1 {
-          0% { transform: translateX(0); }
-          45% { transform: translateX(-45%); }
-        }
-        @keyframes scrollBackground2 {
-          0% { transform: translateX(0); }
-          45% { transform: translateX(45%); }
-        }
-      `}</style>
     </div>
   );
 };

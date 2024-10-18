@@ -1,9 +1,21 @@
-"use client"
+// components/CompanyStructure.js
+"use client";
+
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Input, Spinner } from "@nextui-org/react";
-import { FaPlus, FaEdit, FaTrash, FaSave, FaList, FaSitemap } from "react-icons/fa";
+import {
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaSave,
+  FaList,
+  FaSitemap,
+  FaChevronDown,
+  FaChevronRight,
+} from "react-icons/fa";
 import axios from "axios";
-import Modal from './Modal';  // Import the custom modal component
+import Modal from "./Modal"; // Import the custom modal component
+import { motion, AnimatePresence } from "framer-motion";
+import { Spinner, Input, Button } from "@nextui-org/react";
 
 const CompanyStructure = () => {
   const [structure, setStructure] = useState([]);
@@ -22,6 +34,7 @@ const CompanyStructure = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmRole, setConfirmRole] = useState(null);
+  const [expandedRoles, setExpandedRoles] = useState([]); // Array to track expanded roles in tree view
 
   const containerRef = useRef(null);
 
@@ -33,7 +46,9 @@ const CompanyStructure = () => {
     if (containerRef.current) {
       const rootElement = containerRef.current.querySelector(".root-role");
       if (rootElement) {
-        containerRef.current.scrollLeft = rootElement.offsetLeft - (containerRef.current.clientWidth - rootElement.clientWidth) / 2;
+        containerRef.current.scrollLeft =
+          rootElement.offsetLeft -
+          (containerRef.current.clientWidth - rootElement.clientWidth) / 2;
       }
     }
   }, [structure]);
@@ -75,6 +90,11 @@ const CompanyStructure = () => {
   };
 
   const addRole = async (parentId) => {
+    if (!roleName.trim()) {
+      alert("Role name cannot be empty.");
+      return;
+    }
+
     setLoadingAction({ ...loadingAction, addSubrole: true });
     const token = localStorage.getItem("token");
     try {
@@ -90,19 +110,11 @@ const CompanyStructure = () => {
       const newRole = response.data.newRole;
 
       if (!parentId) {
-        setStructure([...structure, newRole]);
+        setStructure([...structure, { ...newRole, subRoles: [] }]);
       } else {
-        const updateStructure = (roles) => {
-          return roles.map((role) => {
-            if (role._id === parentId) {
-              return { ...role, subRoles: [...(role.subRoles || []), newRole] };
-            } else if (role.subRoles && role.subRoles.length > 0) {
-              return { ...role, subRoles: updateStructure(role.subRoles) };
-            }
-            return role;
-          });
-        };
-        setStructure(updateStructure(structure));
+        const updatedStructure = addSubRole(structure, parentId, newRole);
+        setStructure(updatedStructure);
+        setExpandedRoles([...expandedRoles, parentId]); // Expand parent to show new subrole
       }
 
       setRoleName("");
@@ -114,7 +126,29 @@ const CompanyStructure = () => {
     }
   };
 
+  const addSubRole = (roles, parentId, newRole) => {
+    return roles.map((role) => {
+      if (role._id === parentId) {
+        return {
+          ...role,
+          subRoles: [...(role.subRoles || []), { ...newRole, subRoles: [] }],
+        };
+      } else if (role.subRoles && role.subRoles.length > 0) {
+        return {
+          ...role,
+          subRoles: addSubRole(role.subRoles, parentId, newRole),
+        };
+      }
+      return role;
+    });
+  };
+
   const editRole = async (role) => {
+    if (!editRoleName.trim()) {
+      alert("Role name cannot be empty.");
+      return;
+    }
+
     setLoadingAction({ ...loadingAction, editRole: true });
     const token = localStorage.getItem("token");
     try {
@@ -128,18 +162,8 @@ const CompanyStructure = () => {
         }
       );
 
-      const updateStructure = (roles) => {
-        return roles.map((r) => {
-          if (r._id === role._id) {
-            return { ...r, name: editRoleName };
-          } else if (r.subRoles && r.subRoles.length > 0) {
-            return { ...r, subRoles: updateStructure(r.subRoles) };
-          }
-          return r;
-        });
-      };
-
-      setStructure(updateStructure(structure));
+      const updatedStructure = updateRoleName(structure, role._id, editRoleName);
+      setStructure(updatedStructure);
       setEditRoleId(null);
       setEditRoleName("");
     } catch (error) {
@@ -147,6 +171,17 @@ const CompanyStructure = () => {
     } finally {
       setLoadingAction({ ...loadingAction, editRole: false });
     }
+  };
+
+  const updateRoleName = (roles, roleId, newName) => {
+    return roles.map((role) => {
+      if (role._id === roleId) {
+        return { ...role, name: newName };
+      } else if (role.subRoles && role.subRoles.length > 0) {
+        return { ...role, subRoles: updateRoleName(role.subRoles, roleId, newName) };
+      }
+      return role;
+    });
   };
 
   const deleteRole = async (roleId) => {
@@ -163,18 +198,8 @@ const CompanyStructure = () => {
         }
       );
 
-      const updateStructure = (roles) => {
-        return roles
-          .filter((role) => role._id !== roleId)
-          .map((role) => {
-            if (role.subRoles && role.subRoles.length > 0) {
-              return { ...role, subRoles: updateStructure(role.subRoles) };
-            }
-            return role;
-          });
-      };
-
-      setStructure(updateStructure(structure));
+      const updatedStructure = removeRole(structure, roleId);
+      setStructure(updatedStructure);
     } catch (error) {
       console.error("Error deleting role:", error);
     } finally {
@@ -182,77 +207,138 @@ const CompanyStructure = () => {
     }
   };
 
+  const removeRole = (roles, roleId) => {
+    return roles
+      .filter((role) => role._id !== roleId)
+      .map((role) => {
+        if (role.subRoles && role.subRoles.length > 0) {
+          return {
+            ...role,
+            subRoles: removeRole(role.subRoles, roleId),
+          };
+        }
+        return role;
+      });
+  };
+
+  const toggleExpand = (roleId) => {
+    setExpandedRoles((prev) =>
+      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]
+    );
+  };
+
   const renderRolesTree = (roles, isRoot = false) => {
     return (
-      <div className={`flex ${isRoot ? 'justify-center' : ''}`}>
+      <div className={`flex ${isRoot ? "justify-center" : "justify-start"} items-start`}>
         {roles.map((role) => (
-          <div key={role._id} className={`flex flex-col items-center m-4 ${isRoot ? 'root-role' : ''}`}>
-            <div className="bg-orange-200 rounded-xl shadow-md p-2 text-black">
+          <div
+            key={role._id}
+            className={`flex flex-col items-center m-4 relative ${isRoot ? "root-role" : ""}`}
+          >
+            {!isRoot && (
+              <div className="absolute top-0 left-1/2 w-px h-4 bg-gray-400"></div>
+            )}
+
+            <motion.div
+              className="bg-[#F7F9FC] border border-gray-300 rounded-xl shadow-md p-4 text-black flex flex-col items-center relative"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {role.subRoles && role.subRoles.length > 0 && (
+                <button
+                  onClick={() => toggleExpand(role._id)}
+                  className="absolute top-2 right-2 text-gray-600 hover:text-gray-800 focus:outline-none"
+                >
+                  {expandedRoles.includes(role._id) ? (
+                    <FaChevronDown size={14} />
+                  ) : (
+                    <FaChevronRight size={14} />
+                  )}
+                </button>
+              )}
+
               <p className="text-sm font-bold">{role.name}</p>
               <div className="flex space-x-2 mt-2">
-                <Button
-                  className="bg-orange-500 text-white"
+                <button
+                  className="bg-[#1C997F] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
                   onClick={() => setShowInput(role._id)}
                 >
-                  {loadingAction.addSubrole && showInput === role._id ? <Spinner size="sm" color="warning" /> : <FaPlus />}
-                </Button>
-                <Button
-                  className="bg-yellow-500 text-white"
+                  <FaPlus size={14} />
+                </button>
+                <button
+                  className="bg-gray-400 text-white rounded-full p-1 hover:bg-gray-500 focus:outline-none"
                   onClick={() => {
                     setEditRoleId(role._id);
                     setEditRoleName(role.name);
                   }}
                 >
-                  {loadingAction.editRole && editRoleId === role._id ? <Spinner size="sm" color="warning" /> : <FaEdit />}
-                </Button>
+                  <FaEdit size={14} />
+                </button>
+                {role.subRoles?.length === 0 && (
+                  <button
+                    className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none"
+                    onClick={() => handleConfirmation("delete", role)}
+                  >
+                    <FaTrash size={14} />
+                  </button>
+                )}
               </div>
-              {role.subRoles?.length === 0 && (
-                <Button
-                  className="bg-red-500 text-white mt-2"
-                  onClick={() => handleConfirmation('delete', role)}
-                >
-                  {loadingAction.deleteRole ? <Spinner size="sm" color="warning" /> : <FaTrash />}
-                </Button>
-              )}
               {showInput === role._id && (
-                <div className="mt-2">
+                <div className="mt-2 flex items-center space-x-2">
                   <Input
                     type="text"
                     value={roleName}
                     onChange={(e) => setRoleName(e.target.value)}
                     placeholder="Role Name"
-                    className="border border-gray-300 p-2 rounded text-black"
+                    className="border border-gray-300 p-1 rounded text-black w-32"
                   />
-                  <Button
-                    className="bg-green-500 text-white ml-2"
+                  <button
+                    className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
                     onClick={() => addRole(role._id)}
                   >
-                    {loadingAction.addSubrole ? <Spinner size="sm" color="warning" /> : <FaSave />}
-                  </Button>
+                    <FaSave size={14} className="mr-1" />
+                    Save
+                  </button>
                 </div>
               )}
               {editRoleId === role._id && (
-                <div className="mt-2">
+                <div className="mt-2 flex items-center space-x-2">
                   <Input
                     type="text"
                     value={editRoleName}
                     onChange={(e) => setEditRoleName(e.target.value)}
                     placeholder="Edit Role Name"
-                    className="border border-gray-300 p-2 rounded text-black"
+                    className="border border-gray-300 p-1 rounded text-black w-32"
                   />
-                  <Button
-                    className="bg-green-500 text-white ml-2"
-                    onClick={() => handleConfirmation('edit', role)}
+                  <button
+                    className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
+                    onClick={() =>
+                      handleConfirmation("edit", { _id: editRoleId, name: editRoleName })
+                    }
                   >
-                    {loadingAction.editRole ? <Spinner size="sm" color="warning" /> : <FaSave />}
-                  </Button>
+                    <FaSave size={14} className="mr-1" />
+                    Save
+                  </button>
                 </div>
               )}
-            </div>
-            {role.subRoles && role.subRoles.length > 0 && (
-              <div className="flex justify-center mt-4">
-                {renderRolesTree(role.subRoles)}
-              </div>
+            </motion.div>
+
+            {role.subRoles && role.subRoles.length > 0 && expandedRoles.includes(role._id) && (
+              <AnimatePresence>
+                <motion.div
+                  className="flex flex-col items-center mt-4"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="w-px h-4 bg-gray-400"></div>
+                  <div className="flex justify-center items-start">
+                    {renderRolesTree(role.subRoles)}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
             )}
           </div>
         ))}
@@ -264,37 +350,40 @@ const CompanyStructure = () => {
     return (
       <div className="flex flex-col items-start">
         {roles.map((role) => (
-          <div key={role._id} className="bg-orange-200 rounded-xl shadow-md p-2 m-2 text-black w-full border border-gray-400">
+          <div
+            key={role._id}
+            className="bg-[#F7F9FC] border border-gray-300 rounded-xl shadow-md p-4 m-2 text-black w-full"
+          >
             <div className="flex justify-between">
               <p className="text-sm font-bold">{role.name}</p>
               <div className="flex space-x-2">
-                <Button
-                  className="bg-orange-500 text-white"
+                <button
+                  className="bg-[#1C997F] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
                   onClick={() => setShowInput(role._id)}
                 >
-                  {loadingAction.addSubrole && showInput === role._id ? <Spinner size="sm" color="warning" /> : <FaPlus />}
-                </Button>
-                <Button
-                  className="bg-yellow-500 text-white"
+                  <FaPlus size={14} />
+                </button>
+                <button
+                  className="bg-yellow-500 text-white rounded-full p-1 hover:bg-yellow-600 focus:outline-none"
                   onClick={() => {
                     setEditRoleId(role._id);
                     setEditRoleName(role.name);
                   }}
                 >
-                  {loadingAction.editRole && editRoleId === role._id ? <Spinner size="sm" color="warning" /> : <FaEdit />}
-                </Button>
+                  <FaEdit size={14} />
+                </button>
                 {role.subRoles?.length === 0 && (
-                  <Button
-                    className="bg-red-500 text-white"
-                    onClick={() => handleConfirmation('delete', role)}
+                  <button
+                    className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none"
+                    onClick={() => handleConfirmation("delete", role)}
                   >
-                    {loadingAction.deleteRole ? <Spinner size="sm" color="warning" /> : <FaTrash />}
-                  </Button>
+                    <FaTrash size={14} />
+                  </button>
                 )}
               </div>
             </div>
             {showInput === role._id && (
-              <div className="mt-2">
+              <div className="mt-2 flex">
                 <Input
                   type="text"
                   value={roleName}
@@ -302,16 +391,17 @@ const CompanyStructure = () => {
                   placeholder="Role Name"
                   className="border border-gray-300 p-2 rounded text-black"
                 />
-                <Button
-                  className="bg-green-500 text-white ml-2"
+                <button
+                  className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
                   onClick={() => addRole(role._id)}
                 >
-                  {loadingAction.addSubrole ? <Spinner size="sm" color="warning" /> : <FaSave />}
-                </Button>
+                  <FaSave size={14} className="mr-1" />
+                  Save
+                </button>
               </div>
             )}
             {editRoleId === role._id && (
-              <div className="mt-2">
+              <div className="mt-2 flex">
                 <Input
                   type="text"
                   value={editRoleName}
@@ -319,12 +409,13 @@ const CompanyStructure = () => {
                   placeholder="Edit Role Name"
                   className="border border-gray-300 p-2 rounded text-black"
                 />
-                <Button
-                  className="bg-green-500 text-white ml-2"
-                  onClick={() => handleConfirmation('edit', role)}
+                <button
+                  className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
+                  onClick={() => handleConfirmation("edit", role)}
                 >
-                  {loadingAction.editRole ? <Spinner size="sm" color="warning" /> : <FaSave />}
-                </Button>
+                  <FaSave size={14} className="mr-1" />
+                  Save
+                </button>
               </div>
             )}
             {role.subRoles && role.subRoles.length > 0 && (
@@ -339,18 +430,31 @@ const CompanyStructure = () => {
   };
 
   return (
-    <div className="company-structure-container flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg shadow-lg min-h-screen overflow-x-auto">
+    <div className="company-structure-container flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg shadow-lg min-h-screen overflow-hidden">
       {loading ? (
-        <Spinner size="lg" color="warning" />
+        <Spinner size="lg" color="primary" />
       ) : (
         <>
-          <h1 className="text-2xl font-bold mb-4 text-black">Define Company Structure</h1>
+          <h1 className="text-4xl font-bold mb-6 text-black">
+            Define Company Structure
+          </h1>
 
           <Button
-            className="mb-4 bg-blue-500 text-white"
+            className="mb-4 bg-[#1C997F] text-white flex items-center"
             onClick={() => setViewMode(viewMode === "tree" ? "list" : "tree")}
+            auto
           >
-            {viewMode === "tree" ? <FaList /> : <FaSitemap />} Switch to {viewMode === "tree" ? "List View" : "Tree View"}
+            {viewMode === "tree" ? (
+              <>
+                <FaList className="mr-2" />
+                Switch to List View
+              </>
+            ) : (
+              <>
+                <FaSitemap className="mr-2" />
+                Switch to Tree View
+              </>
+            )}
           </Button>
 
           <div className="add-root-role mb-6 w-full max-w-md">
@@ -365,16 +469,24 @@ const CompanyStructure = () => {
                 />
                 <Button
                   onClick={() => addRole(null)}
-                  className="bg-orange-500 text-white w-full"
+                  className="bg-[#1C997F] text-white w-full flex items-center justify-center"
+                  auto
                 >
-                  {loadingAction.defineRoot ? <Spinner size="sm" color="warning" /> : 'Add Root Role'}
+                  {loadingAction.defineRoot ? (
+                    <Spinner size="sm" color="white" />
+                  ) : (
+                    <>
+                      <FaPlus className="mr-2" />
+                      Add Root Role
+                    </>
+                  )}
                 </Button>
               </div>
             )}
           </div>
 
           {viewMode === "tree" ? (
-            <div className="roles-tree w-full overflow-x-auto" ref={containerRef}>
+            <div className="roles-tree w-full overflow-y-auto h-96" ref={containerRef}>
               {structure.length > 0 && (
                 <div className="flex flex-col items-center">
                   {renderRolesTree(structure, true)}
@@ -382,7 +494,7 @@ const CompanyStructure = () => {
               )}
             </div>
           ) : (
-            <div className="roles-list w-full" ref={containerRef}>
+            <div className="roles-list w-full overflow-y-auto h-96" ref={containerRef}>
               {structure.length > 0 && (
                 <div className="flex flex-col items-center">
                   {renderRolesList(structure)}
@@ -393,16 +505,15 @@ const CompanyStructure = () => {
         </>
       )}
 
-      {/* Confirmation Modal */}
       <Modal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         title={confirmAction === "delete" ? "Delete Role" : "Edit Role"}
-        onConfirm={
-          confirmAction === "delete" ? confirmDeleteRole : confirmEditRole
-        }
+        onConfirm={confirmAction === "delete" ? confirmDeleteRole : confirmEditRole}
       >
-        Are you sure you want to {confirmAction} this role?
+        <p className="text-black">
+          Are you sure you want to {confirmAction} this role?
+        </p>
       </Modal>
     </div>
   );

@@ -1,13 +1,29 @@
-import React from 'react'
-import AdminDashboard from '@/app/components/ADMDashboard'
-import DepartmentsWithProcesses from '../components/DepartmentsWithProcesses'
-const page = () => {
+'use client'
+import React, { useEffect } from 'react';
+import AdminDashboard from '@/app/components/ADMDashboard';
+import DepartmentsWithProcesses from '../components/DepartmentsWithProcesses';
+import ProtectedRoute from '../components/ProtectedRoute';
+
+const Page = () => {
+  useEffect(() => {
+    // Set overflow hidden on body to remove scrolling
+    document.body.style.overflow = 'hidden';
+
+    // Cleanup function to reset overflow when component unmounts
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
   return (
-    <div className='flex flex-col bg-white text-black justify-center'>
+    <section className='flex flex-col bg-[#F9F9F9] min-h-screen text-black '>
+      <ProtectedRoute />
       <AdminDashboard />
       <DepartmentsWithProcesses />
-    </div>
-  )
+      <ProtectedRoute />
+
+    </section>
+  );
 }
 
-export default page
+export default Page;

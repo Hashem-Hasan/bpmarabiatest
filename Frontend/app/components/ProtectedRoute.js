@@ -1,58 +1,128 @@
-// components/ProtectedRoute.js
 "use client";
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Spinner } from "@nextui-org/react";
 import axios from 'axios';
 
-const ProtectedRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+const ProtectedRoute = ({
+  children,
+  adminRedirect = "/",
+  employeeRedirect = "/employee-dashboard",
+  adminDashboard = "/Dashboard"
+}) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(null); // null indicates loading state
+  const [role, setRole] = useState(null); // Track the role of the user
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setLoading(false);
-        router.push("/");
+      const employeeToken = localStorage.getItem("employeeToken");
+
+      // If no tokens are present, redirect immediately
+      if (!token && !employeeToken) {
+        router.replace(adminRedirect);
         return;
       }
 
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_HOST}/api/auth/validate-token`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        // Validate employee token first
+        if (employeeToken) {
+          try {
+            const employeeResponse = await axios.get(
+              `${process.env.NEXT_PUBLIC_API_HOST}/api/auth/validate-token`,
+              {
+                headers: { Authorization: `Bearer ${employeeToken}` },
+              }
+            );
 
-        if (response.data.valid) {
-          setIsAuthenticated(true);
-        } else {
-          localStorage.removeItem("token");
-          router.push("/");
+            if (employeeResponse.data.valid && employeeResponse.data.role === 'employee') {
+              setIsAuthenticated(true);
+              setRole('employee');
+              return;
+            } else {
+              localStorage.removeItem("employeeToken");
+              router.replace(adminRedirect);
+              return;
+            }
+          } catch (error) {
+            console.error("Employee token validation failed:", error);
+            localStorage.removeItem("employeeToken");
+            router.replace(adminRedirect);
+            return;
+          }
         }
+
+        // Validate admin token if no valid employee token
+        if (token) {
+          try {
+            const adminResponse = await axios.get(
+              `${process.env.NEXT_PUBLIC_API_HOST}/api/auth/validate-token`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+
+            if (adminResponse.data.valid && adminResponse.data.role === 'admin') {
+              setIsAuthenticated(true);
+              setRole('admin');
+              return;
+            } else {
+              localStorage.removeItem("token");
+              router.replace(adminRedirect);
+              return;
+            }
+          } catch (error) {
+            console.error("Admin token validation failed:", error);
+            localStorage.removeItem("token");
+            router.replace(adminRedirect);
+            return;
+          }
+        }
+
+        // If tokens are invalid, redirect to adminRedirect
+        router.replace(adminRedirect);
       } catch (error) {
-        console.error("Error validating token:", error);
+        console.error("Authentication check failed:", error);
         localStorage.removeItem("token");
-        router.push("/");
+        localStorage.removeItem("employeeToken");
+        router.replace(adminRedirect);
       } finally {
-        setLoading(false);
+        // Authentication check is complete
+        setIsAuthenticated(false); // Default to false if not authenticated
       }
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, adminRedirect, employeeRedirect, adminDashboard]);
 
-  if (loading) {
-    return <div className="flex justify-center items-center min-h-screen"><Spinner size="lg" color="warning" /></div>;
+  // While authentication is being verified, show the spinner
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex bg-white justify-center items-center min-h-screen">
+        <Spinner size="lg" color="primary" />
+      </div>
+    );
   }
 
-  if (!isAuthenticated) {
+  // Prevent admins from accessing employee routes
+  if (role === 'admin' && pathname === "/employee-dashboard") {
+    router.replace(adminDashboard);
     return null;
   }
 
-  return <>{children}</>;
+  // Restrict employees to specific routes
+  if (role === 'employee') {
+    const allowedEmployeeRoutes = ["/employee-dashboard", "/Tool"];
+    if (!allowedEmployeeRoutes.includes(pathname)) {
+      router.replace(employeeRedirect);
+      return null;
+    }
+  }
+
+  // Render children only when authenticated
+  return isAuthenticated ? <>{children}</> : null;
 };
 
 export default ProtectedRoute;

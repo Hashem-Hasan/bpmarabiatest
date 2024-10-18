@@ -18,6 +18,7 @@ import {
 } from "@nextui-org/react";
 import { usePathname, useRouter } from "next/navigation";
 import axios from 'axios';
+import Image from "next/image";
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -30,8 +31,9 @@ export default function App() {
   const isActive = (path) => pathname === path;
 
   const menuItems = [
-    { name: "Home", path: "/" },
-    { name: "About Us", path: "https://bpmarabia.com/" },
+    // Add static menu items here if any
+    // Example:
+    // { name: "Home", path: "/" },
   ];
 
   useEffect(() => {
@@ -39,11 +41,9 @@ export default function App() {
     const employeeToken = localStorage.getItem("employeeToken");
 
     if (token) {
-      console.log("Main token found in localStorage:", token);
       fetchUserInfo(token);
       setIsMainUser(true);
     } else if (employeeToken) {
-      console.log("Employee token found in localStorage:", employeeToken);
       fetchEmployeeInfo(employeeToken);
       setIsMainUser(false);
     } else {
@@ -57,23 +57,38 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, []);
 
+  useEffect(() => {
+    const handleRouteChange = () => {
+      const token = localStorage.getItem("token");
+      const employeeToken = localStorage.getItem("employeeToken");
+
+      if (token) {
+        fetchUserInfo(token);
+        setIsMainUser(true);
+      } else if (employeeToken) {
+        fetchEmployeeInfo(employeeToken);
+        setIsMainUser(false);
+      } else {
+        setLoggedInUser(null);
+      }
+    };
+
+    // This will re-run the effect when pathname changes
+    handleRouteChange();
+  }, [router, pathname]);
+
   const fetchUserInfo = async (token) => {
     try {
       const decoded = parseJwt(token);
-      console.log("Decoded main token:", decoded);
       if (decoded && decoded.exp * 1000 > Date.now()) {
         if (decoded.fullName) {
-          console.log("Setting logged in main user:", decoded.fullName);
           setLoggedInUser(decoded.fullName);
-        } else {
-          console.error("fullName is not present in the decoded main token.");
         }
       } else {
-        console.log("Main token expired");
         logout("token");
       }
     } catch (error) {
-      console.error("Failed to fetch main user info:", error);
+      console.error("Error fetching user info:", error);
       logout("token");
     } finally {
       setLoading(false);
@@ -83,18 +98,16 @@ export default function App() {
   const fetchEmployeeInfo = async (token) => {
     try {
       const decoded = parseJwt(token);
-      console.log("Decoded employee token:", decoded);
       if (decoded && decoded.exp * 1000 > Date.now()) {
         const response = await axios.get(`${process.env.NEXT_PUBLIC_API_HOST}/api/employeess/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setLoggedInUser(response.data.fullName);
       } else {
-        console.log("Employee token expired");
         logout("employeeToken");
       }
     } catch (error) {
-      console.error("Failed to fetch employee info:", error);
+      console.error("Error fetching employee info:", error);
       logout("employeeToken");
     } finally {
       setLoading(false);
@@ -106,58 +119,52 @@ export default function App() {
     const employeeToken = localStorage.getItem("employeeToken");
 
     if (token) {
-      try {
-        const decoded = parseJwt(token);
-        if (!decoded || decoded.exp * 1000 < Date.now()) {
-          console.log("Main token expired during check");
-          logout("token");
-        }
-      } catch (error) {
-        console.error("Failed to parse main token:", error);
+      const decoded = parseJwt(token);
+      if (!decoded || decoded.exp * 1000 < Date.now()) {
         logout("token");
       }
     }
 
     if (employeeToken) {
-      try {
-        const decoded = parseJwt(employeeToken);
-        console.log("Employee token before checking validity:", employeeToken); // Log the employee token before checking its validity
-        if (!decoded || decoded.exp * 1000 < Date.now()) {
-          console.log("Employee token expired during check");
-          logout("employeeToken");
-        }
-      } catch (error) {
-        console.error("Failed to parse employee token:", error);
+      const decoded = parseJwt(employeeToken);
+      if (!decoded || decoded.exp * 1000 < Date.now()) {
         logout("employeeToken");
       }
     }
   };
 
   const logout = (tokenType) => {
-    console.log(`Logging out, clearing ${tokenType}`);
     localStorage.removeItem(tokenType);
     if (tokenType === "token") {
-      localStorage.removeItem("employeeToken"); // Clear employee token only when logging out main user
+      localStorage.removeItem("employeeToken");
     }
     setLoggedInUser(null);
-    router.push("/login");
+    router.push("/");
   };
 
+  // Function to determine if the user is an admin
+  const isAdmin = isMainUser;
+
+  // Function to determine if the user is an employee
+  const isEmployee = !isMainUser && loggedInUser;
+
   return (
-    <Navbar onMenuOpenChange={setIsMenuOpen} className="bg-white text-black">
+    <Navbar onMenuOpenChange={setIsMenuOpen} className="bg-white shadow-sm text-black">
       <NavbarContent>
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           className="sm:hidden text-black"
         />
         <NavbarBrand color="foreground" href="/">
-          <p className="font-bold text-black">BPMN Arabia</p>
+          <Link href="https://bpmarabia.com/">
+            <Image src="/LLogo.png" alt="BPMN Arabia Logo" width={170} height={100} />
+          </Link>
         </NavbarBrand>
       </NavbarContent>
 
       <NavbarContent className="hidden sm:flex gap-4" justify="center">
         {loading ? (
-          <Spinner size="lg" color="warning" />
+          <Spinner size="lg" color="primary" />
         ) : (
           <>
             {menuItems.map((item) => (
@@ -165,31 +172,45 @@ export default function App() {
                 <Link
                   color="foreground"
                   href={item.path}
-                  className={`text-black ${isActive(item.path) ? "font-bold text-orange-500" : ""}`}
+                  className={`text-black ${isActive(item.path) ? "font-bold text-[#1C997F]" : ""}`}
                 >
                   {item.name}
                 </Link>
               </NavbarItem>
             ))}
+
             {loggedInUser && (
-              <NavbarItem isActive={isActive("/tool")}>
+              <NavbarItem isActive={isActive("/Tool")}>
                 <Link
                   color="foreground"
                   href="/Tool"
-                  className={`text-black ${isActive("/Tool") ? "font-bold text-orange-500" : ""}`}
+                  className={`text-black ${isActive("/Tool") ? "font-bold text-[#1C997F]" : ""}`}
                 >
                   Process Builder
                 </Link>
               </NavbarItem>
             )}
-            {loggedInUser && isMainUser && (
+
+            {isAdmin && (
               <NavbarItem isActive={isActive("/Dashboard")}>
                 <Link
                   color="foreground"
                   href="/Dashboard"
-                  className={`text-black ${isActive("/dashboard") ? "font-bold text-orange-500" : ""}`}
+                  className={`text-black ${isActive("/Dashboard") ? "font-bold text-[#1C997F]" : ""}`}
                 >
                   Dashboard
+                </Link>
+              </NavbarItem>
+            )}
+
+            {isEmployee && (
+              <NavbarItem isActive={isActive("/employee-dashboard")}>
+                <Link
+                  color="foreground"
+                  href="/employee-dashboard"
+                  className={`text-black ${isActive("/employee-dashboard") ? "font-bold text-[#1C997F]" : ""}`}
+                >
+                  Employee Dashboard
                 </Link>
               </NavbarItem>
             )}
@@ -199,11 +220,11 @@ export default function App() {
 
       <NavbarContent justify="end" className="flex items-center">
         {loading ? (
-          <Spinner size="lg" color="warning" />
+          <Spinner size="lg" color="primary" />
         ) : loggedInUser ? (
           <Dropdown>
             <DropdownTrigger>
-              <Button auto flat>
+              <Button auto flat color="primary" className="text-white">
                 Hello, {loggedInUser}
               </Button>
             </DropdownTrigger>
@@ -213,7 +234,11 @@ export default function App() {
                   Account Settings
                 </Link>
               </DropdownItem>
-              <DropdownItem key="logout" color="danger" onClick={() => logout("token")}>
+              <DropdownItem
+                key="logout"
+                color="danger"
+                onClick={() => logout(isAdmin ? "token" : "employeeToken")}
+              >
                 <h1 className="text-red-400 text-md font-bold">Logout</h1>
               </DropdownItem>
             </DropdownMenu>
@@ -221,12 +246,18 @@ export default function App() {
         ) : (
           <>
             <NavbarItem>
-              <Link href="/login" className={`text-primary ${pathname === "/login" ? "font-bold text-orange-500" : ""}`}>
-                Login
+              <Link href="/" className={`text-primary ${isActive("/") ? "font-bold text-[#1C997F]" : ""}`}>
+                Admin Login
               </Link>
             </NavbarItem>
             <NavbarItem>
-              <Button as={Link} color="warning" href="/ELogin" variant="flat" className={`text-primary ${pathname === "/ELogin" ? "font-bold text-orange-500" : ""}`}>
+              <Button
+                as={Link}
+                color="primary"
+                href="/ELogin"
+                variant="flat"
+                className={`text-primary ${isActive("/ELogin") ? "font-bold text-[#1C997F]" : ""}`}
+              >
                 Employees Login
               </Button>
             </NavbarItem>
@@ -240,34 +271,49 @@ export default function App() {
             <Link
               color="foreground"
               href={item.path}
-              className={`w-full text-black ${isActive(item.path) ? "font-bold text-orange-500" : ""}`}
+              className={`w-full text-black ${isActive(item.path) ? "font-bold text-[#1C997F]" : ""}`}
               size="lg"
             >
               {item.name}
             </Link>
           </NavbarMenuItem>
         ))}
+
         {loggedInUser && (
           <NavbarMenuItem key="/Tool">
             <Link
               color="foreground"
               href="/Tool"
-              className={`w-full text-black ${isActive("/Tool") ? "font-bold text-orange-500" : ""}`}
+              className={`w-full text-black ${isActive("/Tool") ? "font-bold text-[#1C997F]" : ""}`}
               size="lg"
             >
               Process Builder
             </Link>
           </NavbarMenuItem>
         )}
-        {loggedInUser && isMainUser && (
+
+        {isAdmin && (
           <NavbarMenuItem key="/Dashboard">
             <Link
               color="foreground"
-              href="/dashboard"
-              className={`w-full text-black ${isActive("/dashboard") ? "font-bold text-orange-500" : ""}`}
+              href="/Dashboard"
+              className={`w-full text-black ${isActive("/Dashboard") ? "font-bold text-[#1C997F]" : ""}`}
               size="lg"
             >
               Dashboard
+            </Link>
+          </NavbarMenuItem>
+        )}
+
+        {isEmployee && (
+          <NavbarMenuItem key="/employee-dashboard">
+            <Link
+              color="foreground"
+              href="/employee-dashboard"
+              className={`w-full text-black ${isActive("/employee-dashboard") ? "font-bold text-[#1C997F]" : ""}`}
+              size="lg"
+            >
+              Employee Dashboard
             </Link>
           </NavbarMenuItem>
         )}
@@ -284,7 +330,7 @@ function parseJwt(token) {
       atob(base64)
         .split('')
         .map(function (c) {
-          return '%' + ('00' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).slice(-2);
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         })
         .join('')
     );

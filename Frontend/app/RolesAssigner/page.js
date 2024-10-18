@@ -1,12 +1,26 @@
-import React from 'react'
-import ProcessRoleAssignment from '../components/ProcessRoleAssignment'
+'use client';
+import React, { useEffect } from 'react';
+import ProcessRoleAssignment from '../components/ProcessRoleAssignment';
+import ProtectedRoute from '../components/ProtectedRoute';
 
-const page = () => {
+const Page = () => {
+  useEffect(() => {
+    // Set overflow hidden on body to prevent page scrolling
+    document.body.style.overflow = 'hidden';
+
+    // Cleanup function to reset overflow when component unmounts
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
+
   return (
-    <div>
+    <div className="h-screen overflow-hidden">
+      <ProtectedRoute />
       <ProcessRoleAssignment />
+      <ProtectedRoute />
     </div>
-  )
-}
+  );
+};
 
-export default page
+export default Page;

@@ -2,31 +2,81 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const Employee = require('../models/Employee'); // Assuming there's an employee model
 const authenticateToken = require('../middleware/authenticateToken');
+const authenticateEmployeeToken = require('../middleware/authenticateEmployeeToken');
 const router = express.Router();
 const secretKey = 'your_secret_key_here';
 
-// Validate Token
-router.get('/validate-token', authenticateToken, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId);
-    if (!user) {
-      return res.status(401).json({ valid: false });
+// Unified Middleware for Admin and Employee Authentication
+const unifiedAuthMiddleware = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) {
+    console.log('No authorization header provided');
+    return res.status(401).json({ valid: false, message: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    console.log('Invalid token format');
+    return res.status(401).json({ valid: false, message: 'Invalid token format' });
+  }
+
+  // Try to verify using admin or employee middleware
+  jwt.verify(token, secretKey, async (err, decoded) => {
+    if (err) {
+      console.error('Error verifying token:', err.message);
+      return res.status(401).json({ valid: false, message: 'Invalid token' });
     }
-    res.status(200).json({ valid: true });
+
+    req.decoded = decoded;
+    next();
+  });
+};
+
+// Validate Token Route
+router.get('/validate-token', unifiedAuthMiddleware, async (req, res) => {
+  console.log('--- Incoming request to /validate-token ---');
+  console.log('Decoded Token:', req.decoded);
+
+  try {
+    // Check for admin token
+    if (req.decoded.userId) {
+      console.log('Checking for admin user with userId:', req.decoded.userId);
+      const user = await User.findById(req.decoded.userId);
+      if (user) {
+        console.log('Token belongs to admin:', user.email);
+        return res.status(200).json({ valid: true, role: 'admin' });
+      }
+    }
+
+    // Check for employee token
+    if (req.decoded._id) {
+      console.log('Checking for employee with employeeId:', req.decoded._id);
+      const employee = await Employee.findById(req.decoded._id);
+      if (employee) {
+        console.log('Token belongs to employee:', employee.email);
+        return res.status(200).json({ valid: true, role: 'employee' });
+      }
+    }
+
+    // If no user or employee found
+    console.log('No user or employee found for token');
+    return res.status(401).json({ valid: false, message: 'Invalid token' });
+
   } catch (error) {
-    console.error("Error validating token:", error);
-    res.status(500).json({ valid: false });
+    console.error('Error in /validate-token:', error.message);
+    return res.status(500).json({ valid: false, message: 'Internal server error' });
   }
 });
 
 // Sign Up
 router.post('/signup', async (req, res) => {
-  const { fullName, businessMail, companyName, companySize, phoneNumber, password } = req.body;
+  const { fullName, businessMail, companyName, companySize, phoneNumber, password, logo } = req.body;
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ fullName, businessMail, companyName, companySize, phoneNumber, password: hashedPassword });
+    const newUser = new User({ fullName, businessMail, companyName, companySize, phoneNumber, password: hashedPassword, logo });
     await newUser.save();
     res.status(201).send({ message: 'User registered successfully' });
   } catch (error) {

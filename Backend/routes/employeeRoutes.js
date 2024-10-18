@@ -10,12 +10,30 @@ const secretKey = process.env.SECRET_KEY || 'your_secret_key_here';
 
 // Employee Login
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  let { email, password, companyName } = req.body;
+
+  if (!companyName) {
+    return res.status(400).send({ message: 'Company name is required' });
+  }
+
+  // Trim and convert company name to lowercase for comparison
+  companyName = companyName.trim().toLowerCase();
 
   try {
+    // Fetch employee details and populate the company reference
     const employee = await Employee.findOne({ email }).populate('company');
     if (!employee) {
       return res.status(400).send({ message: 'Password or email is incorrect' });
+    }
+
+    // Ensure the company is associated with the employee and has a companyName field
+    if (!employee.company || !employee.company.companyName) {
+      return res.status(400).send({ message: 'Company information is missing for the employee' });
+    }
+
+    // Check if the company name matches (case-insensitive and trimmed)
+    if (employee.company.companyName.trim().toLowerCase() !== companyName) {
+      return res.status(400).send({ message: 'Invalid company name' });
     }
 
     // Check if the associated company is activated
@@ -23,23 +41,29 @@ router.post('/login', async (req, res) => {
       return res.status(403).send({ message: 'Your account is disabled, please contact customer service team for support' });
     }
 
+    // Verify the employee password
     const validPassword = await bcrypt.compare(password, employee.password);
     if (!validPassword) {
       return res.status(400).send({ message: 'Password or email is incorrect' });
     }
 
+    // Generate token
     const token = jwt.sign(
       { _id: employee._id, email: employee.email, fullName: employee.fullName },
-      secretKey,
+      process.env.SECRET_KEY || 'your_secret_key_here', // Correctly reference the secret key
       { expiresIn: '1h' } // Set expiration time to 1 hour
     );
-    console.log('Generated Token:', token); // Add this line for debugging
+    
+    console.log('Generated Token:', token); // Debugging token generation
     res.status(200).send({ token });
   } catch (error) {
     console.error('Error logging in:', error);
     res.status(500).send({ message: 'Error logging in', error });
   }
 });
+
+
+
 
 // Get employee info
 router.get('/me', authenticateEmployeeToken, async (req, res) => {
@@ -96,7 +120,7 @@ router.put('/update', authenticateEmployeeToken, async (req, res) => {
 });
 
 
-// Get employee tasks based on role
+// Get employee tasks based on role and fetch department
 router.get('/tasks', authenticateEmployeeToken, async (req, res) => {
   try {
     const employee = await Employee.findById(req.employee._id).populate('role');
@@ -104,7 +128,7 @@ router.get('/tasks', authenticateEmployeeToken, async (req, res) => {
       return res.status(404).send({ message: 'Employee not found' });
     }
 
-    const processes = await BpmnModel.find({ assignedRoles: employee.role._id, isVerified: true });
+    const processes = await BpmnModel.find({ assignedRoles: employee.role._id, isVerified: true }).populate('department');
 
     res.status(200).send(processes);
   } catch (error) {

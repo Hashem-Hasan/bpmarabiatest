@@ -210,6 +210,7 @@ router.get('/businesses', async (req, res) => {
           ...business.toObject(),
           employeesNumber,
           processesNumber,
+          logo: business.logo, // Ensure the logo field is included in the response
         };
       })
     );
@@ -219,6 +220,7 @@ router.get('/businesses', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 
 // GET business details by ID
 router.get('/businesses/:id', async (req, res) => {

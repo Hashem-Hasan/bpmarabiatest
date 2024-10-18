@@ -111,7 +111,7 @@ const DiagramExporter = ({ modelerRef, diagramToEdit, diagramName }) => {
   return (
     <button 
       onClick={exportDiagram} 
-      className="bg-purple-500 text-white py-2 px-4 rounded-md transition-all hover:bg-purple-700"
+      className="text-center w-full text-gray-500 py-2 px-4 rounded-md transition-all hover:bg-gray-200"
     >
       Export as PDF
     </button>

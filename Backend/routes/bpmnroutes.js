@@ -164,7 +164,14 @@ router.post('/', authenticate, async (req, res) => {
 // Get all BPMN diagrams created by the logged-in main user (for main token)
 router.get('/all', authenticateToken, async (req, res) => {
   try {
-    const diagrams = await BpmnModel.find({ creator: req.user.userId }).populate('owners').populate('assignedRoles');
+    const diagrams = await BpmnModel.find({ creator: req.user.userId })
+      .populate('owners')
+      .populate('assignedRoles')
+      .populate({
+        path: 'department',
+        select: 'name'  // Only select the 'name' field of the department
+      });
+
     res.status(200).send(diagrams);
   } catch (error) {
     console.error('Error fetching BPMN diagrams:', error);
@@ -175,13 +182,21 @@ router.get('/all', authenticateToken, async (req, res) => {
 // Get BPMN diagrams owned by the logged-in employee (for employee token)
 router.get('/owned', authenticateEmployeeToken, async (req, res) => {
   try {
-    const diagrams = await BpmnModel.find({ owners: req.employee._id }).populate('owners').populate('assignedRoles');
+    const diagrams = await BpmnModel.find({ owners: req.employee._id })
+      .populate('owners')
+      .populate('assignedRoles')
+      .populate({
+        path: 'department',
+        select: 'name'  // Only select the 'name' field of the department
+      });
+
     res.status(200).send(diagrams);
   } catch (error) {
     console.error('Error fetching BPMN diagrams:', error);
     res.status(500).send({ message: 'Error fetching BPMN diagrams', error });
   }
 });
+
 
 // Generic route to handle both main token and employee token
 router.get('/all-or-owned', authenticate, async (req, res) => {
@@ -215,10 +230,10 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
-// Update a BPMN diagram by ID (ensure it's owned by the logged-in employee or created by the logged-in main user)
+// Update a BPMN diagram by ID
 router.put('/:id', authenticate, async (req, res) => {
   const { id } = req.params;
-  const { name, xml, ownerIds, assignedRoles, department } = req.body; // Include department here
+  const { name, xml, ownerIds, assignedRoles, department } = req.body;
 
   let userId, userModel;
   if (req.user) {
@@ -237,49 +252,68 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(404).send({ message: 'Diagram not found' });
     }
 
-    // Check if the diagram is verified
-    if (diagram.isVerified) {
-      return res.status(403).send({ message: 'The Verified processes cannot be edited, please unverify it to save' });
-    }
-
     // Ensure the logged-in user is either the creator or one of the owners
-    if (diagram.creator?.toString() !== userId.toString() && !diagram.owners.includes(userId)) {
+    if (
+      diagram.creator?.toString() !== userId.toString() &&
+      !diagram.owners.map((ownerId) => ownerId.toString()).includes(userId.toString())
+    ) {
       return res.status(403).send({ message: 'Permission denied' });
     }
 
-    // Only update fields that are provided in the request
-    diagram.name = name || diagram.name;
-    diagram.xml = xml || diagram.xml;
-    diagram.assignedRoles = assignedRoles || diagram.assignedRoles;
+    // Check if the diagram is verified
+    if (diagram.isVerified) {
+      // Allow only updating owners
+      if (ownerIds && ownerIds.length > 0) {
+        // Update owners
+        diagram.owners = Array.from(new Set([...diagram.owners.map(id => id.toString()), ...ownerIds]));
+        
+        const logEntry = await createLogEntry(userId, 'updated owners', userModel);
+        diagram.logs.push(logEntry);
 
-    // Update the department field if provided
-    if (department) {
-      diagram.department = department;
+        await diagram.save();
+
+        // Update the ownedProcesses field in Employee model
+        await Employee.updateMany(
+          { _id: { $in: ownerIds } },
+          { $addToSet: { ownedProcesses: id } }
+        );
+
+        res.status(200).send(diagram);
+      } else {
+        return res.status(403).send({ message: 'Verified diagrams cannot be edited except for owners' });
+      }
+    } else {
+      // If not verified, allow updating all fields
+
+      // Update fields that are provided in the request
+      if (name) diagram.name = name;
+      if (xml) diagram.xml = xml;
+      if (assignedRoles) diagram.assignedRoles = assignedRoles;
+      if (department) diagram.department = department;
+
+      if (ownerIds && ownerIds.length > 0) {
+        diagram.owners = Array.from(new Set([...diagram.owners.map(id => id.toString()), ...ownerIds]));
+
+        // Update the ownedProcesses field in Employee model
+        await Employee.updateMany(
+          { _id: { $in: ownerIds } },
+          { $addToSet: { ownedProcesses: id } }
+        );
+      }
+
+      const logEntry = await createLogEntry(userId, 'updated diagram', userModel);
+      diagram.logs.push(logEntry);
+
+      await diagram.save();
+
+      res.status(200).send(diagram);
     }
-
-    if (ownerIds && ownerIds.length > 0) {
-      diagram.owners = Array.from(new Set([...diagram.owners, ...ownerIds])); // Merge existing and new owners
-    }
-
-    const logEntry = await createLogEntry(userId, 'updated', userModel);
-    diagram.logs.push(logEntry);
-
-    await diagram.save();
-
-    // Update the ownedProcesses field in Employee model
-    if (ownerIds && ownerIds.length > 0) {
-      await Employee.updateMany(
-        { _id: { $in: ownerIds } },
-        { $addToSet: { ownedProcesses: id } }
-      );
-    }
-
-    res.status(200).send(diagram);
   } catch (error) {
     console.error('Error updating BPMN diagram:', error);
     res.status(500).send({ message: 'Error updating BPMN diagram', error });
   }
 });
+
 
 
 // Delete a BPMN diagram by ID (only allow main user)

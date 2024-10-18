@@ -19,6 +19,7 @@ const userSchema = new Schema({
   password: { type: String, required: true },
   isActivated: { type: Boolean, default: false },
   activationExpires: { type: Date },
+  logo: { type: String, required: true }, // Logo URL, must match URL pattern
   logs: [logSchema], // Include logs in the User schema
 });
 

@@ -1,9 +1,19 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Input, Spinner } from "@nextui-org/react";
-import { FaPlus, FaEdit, FaTrash, FaSave, FaList, FaSitemap } from "react-icons/fa";
+import {
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaSave,
+  FaList,
+  FaSitemap,
+  FaChevronDown,
+  FaChevronRight,
+} from "react-icons/fa";
 import axios from "axios";
-import Modal from './Modal';  // Import the custom modal component
+import Modal from "./Modal"; // Import the custom modal component
+import { motion, AnimatePresence } from "framer-motion";
+import { Spinner, Input, Button } from "@nextui-org/react";
 
 const DepartmentStructure = () => {
   const [structure, setStructure] = useState([]);
@@ -22,6 +32,7 @@ const DepartmentStructure = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [confirmDepartment, setConfirmDepartment] = useState(null);
+  const [expandedDepartments, setExpandedDepartments] = useState([]); // Array to track expanded departments in tree view
 
   const containerRef = useRef(null);
 
@@ -33,7 +44,9 @@ const DepartmentStructure = () => {
     if (containerRef.current) {
       const rootElement = containerRef.current.querySelector(".root-department");
       if (rootElement) {
-        containerRef.current.scrollLeft = rootElement.offsetLeft - (containerRef.current.clientWidth - rootElement.clientWidth) / 2;
+        containerRef.current.scrollLeft =
+          rootElement.offsetLeft -
+          (containerRef.current.clientWidth - rootElement.clientWidth) / 2;
       }
     }
   }, [structure]);
@@ -95,9 +108,21 @@ const DepartmentStructure = () => {
         const updateStructure = (departments) => {
           return departments.map((department) => {
             if (department._id === parentId) {
-              return { ...department, subDepartments: [...(department.subDepartments || []), newDepartment] };
-            } else if (department.subDepartments && department.subDepartments.length > 0) {
-              return { ...department, subDepartments: updateStructure(department.subDepartments) };
+              return {
+                ...department,
+                subDepartments: [
+                  ...(department.subDepartments || []),
+                  newDepartment,
+                ],
+              };
+            } else if (
+              department.subDepartments &&
+              department.subDepartments.length > 0
+            ) {
+              return {
+                ...department,
+                subDepartments: updateStructure(department.subDepartments),
+              };
             }
             return department;
           });
@@ -133,7 +158,10 @@ const DepartmentStructure = () => {
           if (d._id === department._id) {
             return { ...d, name: editDepartmentName };
           } else if (d.subDepartments && d.subDepartments.length > 0) {
-            return { ...d, subDepartments: updateStructure(d.subDepartments) };
+            return {
+              ...d,
+              subDepartments: updateStructure(d.subDepartments),
+            };
           }
           return d;
         });
@@ -167,8 +195,14 @@ const DepartmentStructure = () => {
         return departments
           .filter((department) => department._id !== departmentId)
           .map((department) => {
-            if (department.subDepartments && department.subDepartments.length > 0) {
-              return { ...department, subDepartments: updateStructure(department.subDepartments) };
+            if (
+              department.subDepartments &&
+              department.subDepartments.length > 0
+            ) {
+              return {
+                ...department,
+                subDepartments: updateStructure(department.subDepartments),
+              };
             }
             return department;
           });
@@ -182,77 +216,126 @@ const DepartmentStructure = () => {
     }
   };
 
+  const toggleExpand = (departmentId) => {
+    setExpandedDepartments((prev) =>
+      prev.includes(departmentId)
+        ? prev.filter((id) => id !== departmentId)
+        : [...prev, departmentId]
+    );
+  };
+
   const renderDepartmentsTree = (departments, isRoot = false) => {
     return (
-      <div className={`flex ${isRoot ? 'justify-center' : ''}`}>
+      <div className={`flex ${isRoot ? "justify-center" : "justify-start"} items-start`}>
         {departments.map((department) => (
-          <div key={department._id} className={`flex flex-col items-center m-4 ${isRoot ? 'root-department' : ''}`}>
-            <div className="bg-blue-200 rounded-xl shadow-md p-2 text-black">
+          <div
+            key={department._id}
+            className={`flex flex-col items-center m-4 relative ${isRoot ? "root-department" : ""}`}
+          >
+            {!isRoot && (
+              <div className="absolute top-0 left-1/2 w-px h-4 bg-gray-400"></div>
+            )}
+
+            <motion.div
+              className="bg-[#F7F9FC] border border-gray-300 rounded-xl shadow-md p-4 text-black flex flex-col items-center relative"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {department.subDepartments && department.subDepartments.length > 0 && (
+                <button
+                  onClick={() => toggleExpand(department._id)}
+                  className="absolute top-2 right-2 text-gray-600 hover:text-gray-800 focus:outline-none"
+                >
+                  {expandedDepartments.includes(department._id) ? (
+                    <FaChevronDown size={14} />
+                  ) : (
+                    <FaChevronRight size={14} />
+                  )}
+                </button>
+              )}
+
               <p className="text-sm font-bold">{department.name}</p>
               <div className="flex space-x-2 mt-2">
-                <Button
-                  className="bg-blue-500 text-white"
+                <button
+                  className="bg-[#1C997F] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
                   onClick={() => setShowInput(department._id)}
                 >
-                  {loadingAction.addSubDepartment && showInput === department._id ? <Spinner size="sm" color="warning" /> : <FaPlus />}
-                </Button>
-                <Button
-                  className="bg-yellow-500 text-white"
+                  <FaPlus size={14} />
+                </button>
+                <button
+                  className="bg-gray-400 text-white rounded-full p-1 hover:bg-gray-500 focus:outline-none"
                   onClick={() => {
                     setEditDepartmentId(department._id);
                     setEditDepartmentName(department.name);
                   }}
                 >
-                  {loadingAction.editDepartment && editDepartmentId === department._id ? <Spinner size="sm" color="warning" /> : <FaEdit />}
-                </Button>
+                  <FaEdit size={14} />
+                </button>
+                {department.subDepartments?.length === 0 && (
+                  <button
+                    className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none"
+                    onClick={() => handleConfirmation("delete", department)}
+                  >
+                    <FaTrash size={14} />
+                  </button>
+                )}
               </div>
-              {department.subDepartments?.length === 0 && (
-                <Button
-                  className="bg-red-500 text-white mt-2"
-                  onClick={() => handleConfirmation('delete', department)}
-                >
-                  {loadingAction.deleteDepartment ? <Spinner size="sm" color="warning" /> : <FaTrash />}
-                </Button>
-              )}
               {showInput === department._id && (
-                <div className="mt-2">
+                <div className="mt-2 flex items-center space-x-2">
                   <Input
                     type="text"
                     value={departmentName}
                     onChange={(e) => setDepartmentName(e.target.value)}
                     placeholder="Department Name"
-                    className="border border-gray-300 p-2 rounded text-black"
+                    className="border border-gray-300 p-1 rounded text-black w-32"
                   />
-                  <Button
-                    className="bg-green-500 text-white ml-2"
+                  <button
+                    className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
                     onClick={() => addDepartment(department._id)}
                   >
-                    {loadingAction.addSubDepartment ? <Spinner size="sm" color="warning" /> : <FaSave />}
-                  </Button>
+                    <FaSave size={14} className="mr-1" />
+                    Save
+                  </button>
                 </div>
               )}
               {editDepartmentId === department._id && (
-                <div className="mt-2">
+                <div className="mt-2 flex items-center space-x-2">
                   <Input
                     type="text"
                     value={editDepartmentName}
                     onChange={(e) => setEditDepartmentName(e.target.value)}
                     placeholder="Edit Department Name"
-                    className="border border-gray-300 p-2 rounded text-black"
+                    className="border border-gray-300 p-1 rounded text-black w-32"
                   />
-                  <Button
-                    className="bg-green-500 text-white ml-2"
-                    onClick={() => handleConfirmation('edit', department)}
+                  <button
+                    className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
+                    onClick={() =>
+                      handleConfirmation("edit", { _id: editDepartmentId, name: editDepartmentName })
+                    }
                   >
-                    {loadingAction.editDepartment ? <Spinner size="sm" color="warning" /> : <FaSave />}
-                  </Button>
+                    <FaSave size={14} className="mr-1" />
+                    Save
+                  </button>
                 </div>
               )}
-            </div>
-            {department.subDepartments && department.subDepartments.length > 0 && (
-              <div className="flex justify-center mt-4">
-                {renderDepartmentsTree(department.subDepartments)}
-              </div>
+            </motion.div>
+
+            {department.subDepartments && department.subDepartments.length > 0 && expandedDepartments.includes(department._id) && (
+              <AnimatePresence>
+                <motion.div
+                  className="flex flex-col items-center mt-4"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="w-px h-4 bg-gray-400"></div>
+                  <div className="flex justify-center items-start">
+                    {renderDepartmentsTree(department.subDepartments)}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
             )}
           </div>
         ))}
@@ -264,37 +347,40 @@ const DepartmentStructure = () => {
     return (
       <div className="flex flex-col items-start">
         {departments.map((department) => (
-          <div key={department._id} className="bg-blue-200 rounded-xl shadow-md p-2 m-2 text-black w-full border border-gray-400">
+          <div
+            key={department._id}
+            className="bg-[#F7F9FC] border border-gray-300 rounded-xl shadow-md p-4 m-2 text-black w-full"
+          >
             <div className="flex justify-between">
               <p className="text-sm font-bold">{department.name}</p>
               <div className="flex space-x-2">
-                <Button
-                  className="bg-blue-500 text-white"
+                <button
+                  className="bg-[#1C997F] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
                   onClick={() => setShowInput(department._id)}
                 >
-                  {loadingAction.addSubDepartment && showInput === department._id ? <Spinner size="sm" color="warning" /> : <FaPlus />}
-                </Button>
-                <Button
-                  className="bg-yellow-500 text-white"
+                  <FaPlus size={14} />
+                </button>
+                <button
+                  className="bg-yellow-500 text-white rounded-full p-1 hover:bg-yellow-600 focus:outline-none"
                   onClick={() => {
                     setEditDepartmentId(department._id);
                     setEditDepartmentName(department.name);
                   }}
                 >
-                  {loadingAction.editDepartment && editDepartmentId === department._id ? <Spinner size="sm" color="warning" /> : <FaEdit />}
-                </Button>
+                  <FaEdit size={14} />
+                </button>
                 {department.subDepartments?.length === 0 && (
-                  <Button
-                    className="bg-red-500 text-white"
-                    onClick={() => handleConfirmation('delete', department)}
+                  <button
+                    className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none"
+                    onClick={() => handleConfirmation("delete", department)}
                   >
-                    {loadingAction.deleteDepartment ? <Spinner size="sm" color="warning" /> : <FaTrash />}
-                  </Button>
+                    <FaTrash size={14} />
+                  </button>
                 )}
               </div>
             </div>
             {showInput === department._id && (
-              <div className="mt-2">
+              <div className="mt-2 flex">
                 <Input
                   type="text"
                   value={departmentName}
@@ -302,16 +388,17 @@ const DepartmentStructure = () => {
                   placeholder="Department Name"
                   className="border border-gray-300 p-2 rounded text-black"
                 />
-                <Button
-                  className="bg-green-500 text-white ml-2"
+                <button
+                  className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
                   onClick={() => addDepartment(department._id)}
                 >
-                  {loadingAction.addSubDepartment ? <Spinner size="sm" color="warning" /> : <FaSave />}
-                </Button>
+                  <FaSave size={14} className="mr-1" />
+                  Save
+                </button>
               </div>
             )}
             {editDepartmentId === department._id && (
-              <div className="mt-2">
+              <div className="mt-2 flex">
                 <Input
                   type="text"
                   value={editDepartmentName}
@@ -319,19 +406,21 @@ const DepartmentStructure = () => {
                   placeholder="Edit Department Name"
                   className="border border-gray-300 p-2 rounded text-black"
                 />
-                <Button
-                  className="bg-green-500 text-white ml-2"
-                  onClick={() => handleConfirmation('edit', department)}
+                <button
+                  className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
+                  onClick={() => handleConfirmation("edit", department)}
                 >
-                  {loadingAction.editDepartment ? <Spinner size="sm" color="warning" /> : <FaSave />}
-                </Button>
+                  <FaSave size={14} className="mr-1" />
+                  Save
+                </button>
               </div>
             )}
-            {department.subDepartments && department.subDepartments.length > 0 && (
-              <div className="ml-6 mt-2">
-                {renderDepartmentsList(department.subDepartments)}
-              </div>
-            )}
+            {department.subDepartments &&
+              department.subDepartments.length > 0 && (
+                <div className="ml-6 mt-2">
+                  {renderDepartmentsList(department.subDepartments)}
+                </div>
+              )}
           </div>
         ))}
       </div>
@@ -339,18 +428,31 @@ const DepartmentStructure = () => {
   };
 
   return (
-    <div className="department-structure-container flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg shadow-lg min-h-screen overflow-x-auto">
+    <div className="department-structure-container flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg shadow-lg min-h-screen overflow-x-hidden">
       {loading ? (
-        <Spinner size="lg" color="warning" />
+        <Spinner size="lg" color="primary" />
       ) : (
         <>
-          <h1 className="text-2xl font-bold mb-4 text-black">Define Department Structure</h1>
+          <h1 className="text-4xl font-bold mb-6 text-black">
+            Define Department Structure
+          </h1>
 
           <Button
-            className="mb-4 bg-blue-500 text-white"
+            className="mb-4 bg-[#1C997F] text-white flex items-center"
             onClick={() => setViewMode(viewMode === "tree" ? "list" : "tree")}
+            auto
           >
-            {viewMode === "tree" ? <FaList /> : <FaSitemap />} Switch to {viewMode === "tree" ? "List View" : "Tree View"}
+            {viewMode === "tree" ? (
+              <>
+                <FaList className="mr-2" />
+                Switch to List View
+              </>
+            ) : (
+              <>
+                <FaSitemap className="mr-2" />
+                Switch to Tree View
+              </>
+            )}
           </Button>
 
           <div className="add-root-department mb-6 w-full max-w-md">
@@ -365,16 +467,27 @@ const DepartmentStructure = () => {
                 />
                 <Button
                   onClick={() => addDepartment(null)}
-                  className="bg-blue-500 text-white w-full"
+                  className="bg-[#1C997F] text-white w-full flex items-center justify-center"
+                  auto
                 >
-                  {loadingAction.defineRoot ? <Spinner size="sm" color="warning" /> : 'Add Root Department'}
+                  {loadingAction.defineRoot ? (
+                    <Spinner size="sm" color="white" />
+                  ) : (
+                    <>
+                      <FaPlus className="mr-2" />
+                      Add Root Department
+                    </>
+                  )}
                 </Button>
               </div>
             )}
           </div>
 
           {viewMode === "tree" ? (
-            <div className="departments-tree w-full overflow-x-auto" ref={containerRef}>
+            <div
+              className="departments-tree w-full overflow-x-auto"
+              ref={containerRef}
+            >
               {structure.length > 0 && (
                 <div className="flex flex-col items-center">
                   {renderDepartmentsTree(structure, true)}
@@ -393,16 +506,16 @@ const DepartmentStructure = () => {
         </>
       )}
 
-      {/* Confirmation Modal */}
       <Modal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         title={confirmAction === "delete" ? "Delete Department" : "Edit Department"}
-        onConfirm={
-          confirmAction === "delete" ? confirmDeleteDepartment : confirmEditDepartment
-        }
+        onConfirm={confirmAction === "delete" ? confirmDeleteDepartment : confirmEditDepartment}
+        hideFooter={false}
       >
-        Are you sure you want to {confirmAction} this department?
+        <p className="text-black">
+          Are you sure you want to {confirmAction} this department?
+        </p>
       </Modal>
     </div>
   );
