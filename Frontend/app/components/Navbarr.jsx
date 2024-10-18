@@ -157,7 +157,7 @@ export default function App() {
         />
         <NavbarBrand color="foreground" href="/">
           <Link href="https://bpmarabia.com/">
-            <Image src="/LLogo.png" alt="BPMN Arabia Logo" width={170} height={100} />
+            <Image src="/LLOGO.png" alt="BPMN Arabia Logo" width={170} height={100} />
           </Link>
         </NavbarBrand>
       </NavbarContent>

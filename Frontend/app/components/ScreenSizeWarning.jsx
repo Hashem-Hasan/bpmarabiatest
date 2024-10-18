@@ -79,7 +79,7 @@ const ScreenSizeWarning = () => {
           zIndex: 10000, // Ensure modal is above everything
         }}
       >
-        <img src="/LLogo.png" alt="Logo" style={{ width: "100px", marginBottom: "1rem" }} />
+        <img src="/LLOGO.png" alt="Logo" style={{ width: "100px", marginBottom: "1rem" }} />
         <h2 style={{ fontSize: "2rem", fontWeight: "bold", marginBottom: "1rem" }}>Please Use Desktop View</h2>
         <p style={{ fontSize: "1.2rem" }}>
           This application is best viewed on a desktop. Please switch to a larger screen for an optimal experience.
