@@ -4,7 +4,7 @@ import ProtectedRoute from '../components/ProtectedRoute'
 
 const page = () => {
   return (
-    <div>
+    <div className='pt-16'>
       <ProtectedRoute />
       <EmployeeDashboard />
       <ProtectedRoute />

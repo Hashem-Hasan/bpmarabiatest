@@ -69,7 +69,7 @@ const Home = () => {
   };
 
   return (
-    <div className='bg-[#FDFDFD] text-black h-full w-full text-center flex justify-center items-center overflow-hidden'>
+    <div className='bg-[#FDFDFD] text-black h-screen w-full text-center flex justify-center items-center overflow-hidden'>
       <ProtectedRoute />
       <div className="h-full w-full flex justify-center items-center">
         <BpmnEditor
