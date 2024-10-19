@@ -1,4 +1,3 @@
-// components/CompanyStructure.js
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -36,22 +35,23 @@ const CompanyStructure = () => {
   const [confirmRole, setConfirmRole] = useState(null);
   const [expandedRoles, setExpandedRoles] = useState([]); // Array to track expanded roles in tree view
 
-  const containerRef = useRef(null);
+  const treeContainerRef = useRef(null);
+  const listContainerRef = useRef(null);
 
   useEffect(() => {
     fetchStructure();
   }, []);
 
   useEffect(() => {
-    if (containerRef.current) {
-      const rootElement = containerRef.current.querySelector(".root-role");
+    if (viewMode === "tree" && treeContainerRef.current) {
+      const rootElement = treeContainerRef.current.querySelector(".root-role");
       if (rootElement) {
-        containerRef.current.scrollLeft =
+        treeContainerRef.current.scrollLeft =
           rootElement.offsetLeft -
-          (containerRef.current.clientWidth - rootElement.clientWidth) / 2;
+          (treeContainerRef.current.clientWidth - rootElement.clientWidth) / 2;
       }
     }
-  }, [structure]);
+  }, [structure, viewMode]);
 
   const fetchStructure = async () => {
     const token = localStorage.getItem("token");
@@ -430,7 +430,7 @@ const CompanyStructure = () => {
   };
 
   return (
-    <div className="company-structure-container flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg shadow-lg min-h-screen overflow-hidden">
+    <div className="company-structure-container flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg shadow-lg min-h-screen ">
       {loading ? (
         <Spinner size="lg" color="primary" />
       ) : (
@@ -486,7 +486,10 @@ const CompanyStructure = () => {
           </div>
 
           {viewMode === "tree" ? (
-            <div className="roles-tree w-full overflow-y-auto h-96" ref={containerRef}>
+            <div
+              className="roles-tree w-full h-96 overflow-auto"
+              ref={treeContainerRef}
+            >
               {structure.length > 0 && (
                 <div className="flex flex-col items-center">
                   {renderRolesTree(structure, true)}
@@ -494,7 +497,10 @@ const CompanyStructure = () => {
               )}
             </div>
           ) : (
-            <div className="roles-list w-full overflow-y-auto h-96" ref={containerRef}>
+            <div
+              className="roles-list w-full h-96 overflow-auto"
+              ref={listContainerRef}
+            >
               {structure.length > 0 && (
                 <div className="flex flex-col items-center">
                   {renderRolesList(structure)}

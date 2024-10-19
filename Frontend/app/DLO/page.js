@@ -4,7 +4,7 @@ import ProtectedRoute from '../components/ProtectedRoute'
 
 const page = () => {
   return (
-    <div>
+    <div className='min-h-screen pt-12 text-black'>
       <ProtectedRoute/>
       <Dlogs/>
       <ProtectedRoute/>
