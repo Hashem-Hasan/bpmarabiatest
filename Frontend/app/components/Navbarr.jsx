@@ -149,7 +149,7 @@ export default function App() {
   const isEmployee = !isMainUser && loggedInUser;
 
   return (
-    <Navbar onMenuOpenChange={setIsMenuOpen} className="bg-white shadow-sm fixed  text-black">
+    <Navbar onMenuOpenChange={setIsMenuOpen} className="bg-white shadow-sm text-black">
       <NavbarContent>
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}

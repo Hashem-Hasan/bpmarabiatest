@@ -151,7 +151,7 @@ const ProcessOwnerManagement = () => {
   }
 
   return (
-    <div className="process-owner-management p-4 pt-20 text-black bg-white shadow-lg flex flex-col h-screen  ">
+    <div className="process-owner-management p-4 text-black bg-white shadow-lg flex flex-col h-screen overflow-hidden">
       {/* Header */}
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-3xl font-bold">Process Owner Management</h1>

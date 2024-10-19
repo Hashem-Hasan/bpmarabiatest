@@ -16,7 +16,7 @@ const Page = () => {
   }, []);
 
   return (
-    <section className='flex flex-col justify-center bg-[#F9F9F9] min-h-screen text-black '>
+    <section className='flex flex-col bg-[#F9F9F9] min-h-screen text-black '>
       <ProtectedRoute />
       <AdminDashboard />
       <DepartmentsWithProcesses />

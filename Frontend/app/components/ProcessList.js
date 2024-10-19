@@ -205,7 +205,7 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
   };
 
   return (
-    <div className='shadow-md w-full border-1 border-gray-300 items-center mx-auto rounded-lg h-[655px] overflow-y-auto p-4'>
+    <div className='shadow-md w-full border-1 border-gray-300 items-center mx-auto rounded-lg h-[500px] overflow-y-auto p-4'>
       <div className='relative flex flex-col items-start w-full'>
         <h2 className='text-xl mb-2 text-[#1C997F] font-bold'>Processes</h2>
 
