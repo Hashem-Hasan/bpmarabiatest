@@ -16,9 +16,9 @@ const Page = () => {
 
   return (
     <div className="flex flex-col bg-[#F9F9F9] min-h-screen text-black justify-center">
-      <ProtectedRoute />
+      <ProtectedRoute >
       <ProcessOwnerManagement />
-      <ProtectedRoute />
+      </ProtectedRoute >
     </div>
   );
 };

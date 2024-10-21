@@ -160,7 +160,7 @@ const DiagramLogs = () => {
                                       onClick={() => setCurrentPage(index + 1)}
                                       className={`mx-1 px-3 py-1 rounded ${
                                         currentPage === index + 1
-                                          ? "bg-[#1C997F] text-white"
+                                          ? "bg-[#14BAB6] text-white"
                                           : "bg-gray-200 text-black"
                                       }`}
                                     >

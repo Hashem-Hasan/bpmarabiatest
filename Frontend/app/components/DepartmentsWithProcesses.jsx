@@ -92,7 +92,7 @@ const DepartmentsWithProcesses = () => {
           ) : (
             filteredDepartments.map((department) => (
               <div key={department.department._id} className="p-6">
-                <h2 className="text-lg font-semibold text-[#1C997F] mb-4">
+                <h2 className="text-lg font-semibold text-[#14BAB6] mb-4">
                   {department.department.name}
                 </h2>
                 <div className="overflow-y-auto max-h-40 scroll-smooth"> {/* Enable smooth scrolling */}

@@ -82,43 +82,43 @@ const AdminDashboard = () => {
       <div className="flex font-semibold justify-center rounded-lg border-gray-300 bg-white h-16 px-6 items-center w-fit mb-8 space-x-6">
         <a
           href="/DStructure"
-          className="text-gray-500 hover:text-[#1C997F] border-b-2 border-transparent hover:border-[#1C997F] py-1 transition-all"
+          className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
           Departments Structure
         </a>
         <a
           href="/Structure"
-          className="text-gray-500 hover:text-[#1C997F] border-b-2 border-transparent hover:border-[#1C997F] py-1 transition-all"
+          className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
           Roles Structure
         </a>
         <a
           href="/employeesys"
-          className="text-gray-500 hover:text-[#1C997F] border-b-2 border-transparent hover:border-[#1C997F] py-1 transition-all"
+          className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
           Employees Management
         </a>
         <a
           href="/Tool"
-          className="text-gray-500 hover:text-[#1C997F] border-b-2 border-transparent hover:border-[#1C997F] py-1 transition-all"
+          className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
           Processes Management
         </a>
         <a
           href="/ProcessManager"
-          className="text-gray-500 hover:text-[#1C997F] border-b-2 border-transparent hover:border-[#1C997F] py-1 transition-all"
+          className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
           Process Owners Management
         </a>
         <a
           href="/RolesAssigner"
-          className="text-gray-500 hover:text-[#1C997F] border-b-2 border-transparent hover:border-[#1C997F] py-1 transition-all"
+          className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
           Process Mapping
         </a>
         <a
           href="/DLO"
-          className="text-gray-500 hover:text-[#1C997F] border-b-2 border-transparent hover:border-[#1C997F] py-1 transition-all"
+          className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
           Logs
         </a>
@@ -131,7 +131,7 @@ const AdminDashboard = () => {
           <div className="flex items-center mb-4">
             <div className="bg-[#E6E6FF] rounded-full p-4">
               {/* Employee Icon */}
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-[#1C997F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-[#14BAB6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-3-3h-4a3 3 0 00-3 3v2M9 20h4v-2a3 3 0 00-3-3H7a3 3 0 00-3 3v2m5-8a4 4 0 110-8 4 4 0 010 8zm6 0a4 4 0 110-8 4 4 0 010 8z" />
               </svg>
             </div>
@@ -139,7 +139,7 @@ const AdminDashboard = () => {
               {loadingEmployees ? <Spinner size="sm" color="warning" /> : numEmployees}
             </p>
           </div>
-          <p className="text-[#1C997F] text-lg font-semibold">Total of employees</p>
+          <p className="text-[#14BAB6] text-lg font-semibold">Total of employees</p>
         </div>
 
         {/* Total Processes Card */}
@@ -147,7 +147,7 @@ const AdminDashboard = () => {
           <div className="flex items-center mb-4">
             <div className="bg-[#D9FFE6] rounded-full p-4">
               {/* Process Icon */}
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-[#1C997F]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-[#14BAB6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
@@ -155,7 +155,7 @@ const AdminDashboard = () => {
               {loadingProcesses ? <Spinner size="sm" color="warning" /> : numProcesses}
             </p>
           </div>
-          <p className="text-[#1C997F] text-lg font-semibold">Total of processes</p>
+          <p className="text-[#14BAB6] text-lg font-semibold">Total of processes</p>
         </div>
       </div>
     </div>

@@ -1,10 +1,13 @@
 import React from 'react'
 import AccountSettings from '../components/AccountSettings'
+import ProtectedRoute from '../components/ProtectedRoute'
 
 const page = () => {
   return (
-    <div>
+    <div className='pt-16'>
+      <ProtectedRoute>
       <AccountSettings />
+      </ProtectedRoute>
     </div>
   )
 }

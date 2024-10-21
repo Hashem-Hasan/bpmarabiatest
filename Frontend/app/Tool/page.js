@@ -70,7 +70,7 @@ const Home = () => {
 
   return (
     <div className='bg-[#FDFDFD] text-black h-screen w-full text-center flex justify-center items-center overflow-hidden'>
-      <ProtectedRoute />
+      <ProtectedRoute >
       <div className="h-full w-full flex justify-center items-center">
         <BpmnEditor
           key={editorKey}
@@ -80,7 +80,7 @@ const Home = () => {
           style={{ height: '100%', width: '100%' }} // Ensure it takes the full space
         />
       </div>
-      <ProtectedRoute />
+      </ProtectedRoute >
     </div>
   );
 };

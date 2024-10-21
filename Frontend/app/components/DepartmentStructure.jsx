@@ -258,7 +258,7 @@ const DepartmentStructure = () => {
               <p className="text-sm font-bold">{department.name}</p>
               <div className="flex space-x-2 mt-2">
                 <button
-                  className="bg-[#1C997F] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
+                  className="bg-[#14BAB6] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
                   onClick={() => setShowInput(department._id)}
                 >
                   <FaPlus size={14} />
@@ -291,7 +291,7 @@ const DepartmentStructure = () => {
                     className="border border-gray-300 p-1 rounded text-black w-32"
                   />
                   <button
-                    className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
+                    className="bg-[#14BAB6] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
                     onClick={() => addDepartment(department._id)}
                   >
                     <FaSave size={14} className="mr-1" />
@@ -309,7 +309,7 @@ const DepartmentStructure = () => {
                     className="border border-gray-300 p-1 rounded text-black w-32"
                   />
                   <button
-                    className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
+                    className="bg-[#14BAB6] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
                     onClick={() =>
                       handleConfirmation("edit", { _id: editDepartmentId, name: editDepartmentName })
                     }
@@ -355,7 +355,7 @@ const DepartmentStructure = () => {
               <p className="text-sm font-bold">{department.name}</p>
               <div className="flex space-x-2">
                 <button
-                  className="bg-[#1C997F] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
+                  className="bg-[#14BAB6] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
                   onClick={() => setShowInput(department._id)}
                 >
                   <FaPlus size={14} />
@@ -389,7 +389,7 @@ const DepartmentStructure = () => {
                   className="border border-gray-300 p-2 rounded text-black"
                 />
                 <button
-                  className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
+                  className="bg-[#14BAB6] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
                   onClick={() => addDepartment(department._id)}
                 >
                   <FaSave size={14} className="mr-1" />
@@ -407,7 +407,7 @@ const DepartmentStructure = () => {
                   className="border border-gray-300 p-2 rounded text-black"
                 />
                 <button
-                  className="bg-[#1C997F] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
+                  className="bg-[#14BAB6] text-white rounded px-2 py-1 hover:bg-[#15986a] focus:outline-none flex items-center"
                   onClick={() => handleConfirmation("edit", department)}
                 >
                   <FaSave size={14} className="mr-1" />
@@ -438,7 +438,7 @@ const DepartmentStructure = () => {
           </h1>
 
           <Button
-            className="mb-4 bg-[#1C997F] text-white flex items-center"
+            className="mb-4 bg-[#14BAB6] text-white flex items-center"
             onClick={() => setViewMode(viewMode === "tree" ? "list" : "tree")}
             auto
           >
@@ -467,7 +467,7 @@ const DepartmentStructure = () => {
                 />
                 <Button
                   onClick={() => addDepartment(null)}
-                  className="bg-[#1C997F] text-white w-full flex items-center justify-center"
+                  className="bg-[#14BAB6] text-white w-full flex items-center justify-center"
                   auto
                 >
                   {loadingAction.defineRoot ? (

@@ -172,7 +172,7 @@ export default function App() {
                 <Link
                   color="foreground"
                   href={item.path}
-                  className={`text-black ${isActive(item.path) ? "font-bold text-[#1C997F]" : ""}`}
+                  className={`text-black ${isActive(item.path) ? "font-bold text-[#14BAB6]" : ""}`}
                 >
                   {item.name}
                 </Link>
@@ -184,7 +184,7 @@ export default function App() {
                 <Link
                   color="foreground"
                   href="/Tool"
-                  className={`text-black ${isActive("/Tool") ? "font-bold text-[#1C997F]" : ""}`}
+                  className={`text-black ${isActive("/Tool") ? "font-bold text-[#14BAB6]" : ""}`}
                 >
                   Process Builder
                 </Link>
@@ -196,7 +196,7 @@ export default function App() {
                 <Link
                   color="foreground"
                   href="/Dashboard"
-                  className={`text-black ${isActive("/Dashboard") ? "font-bold text-[#1C997F]" : ""}`}
+                  className={`text-black ${isActive("/Dashboard") ? "font-bold text-[#14BAB6]" : ""}`}
                 >
                   Dashboard
                 </Link>
@@ -208,7 +208,7 @@ export default function App() {
                 <Link
                   color="foreground"
                   href="/employee-dashboard"
-                  className={`text-black ${isActive("/employee-dashboard") ? "font-bold text-[#1C997F]" : ""}`}
+                  className={`text-black ${isActive("/employee-dashboard") ? "font-bold text-[#14BAB6]" : ""}`}
                 >
                   Employee Dashboard
                 </Link>
@@ -246,7 +246,7 @@ export default function App() {
         ) : (
           <>
             <NavbarItem>
-              <Link href="/" className={`text-primary ${isActive("/") ? "font-bold text-[#1C997F]" : ""}`}>
+              <Link href="/" className={`text-primary ${isActive("/") ? "font-bold text-[#14BAB6]" : ""}`}>
                 Admin Login
               </Link>
             </NavbarItem>
@@ -256,7 +256,7 @@ export default function App() {
                 color="primary"
                 href="/ELogin"
                 variant="flat"
-                className={`text-primary ${isActive("/ELogin") ? "font-bold text-[#1C997F]" : ""}`}
+                className={`text-primary ${isActive("/ELogin") ? "font-bold text-[#14BAB6]" : ""}`}
               >
                 Employees Login
               </Button>
@@ -271,7 +271,7 @@ export default function App() {
             <Link
               color="foreground"
               href={item.path}
-              className={`w-full text-black ${isActive(item.path) ? "font-bold text-[#1C997F]" : ""}`}
+              className={`w-full text-black ${isActive(item.path) ? "font-bold text-[#14BAB6]" : ""}`}
               size="lg"
             >
               {item.name}
@@ -284,7 +284,7 @@ export default function App() {
             <Link
               color="foreground"
               href="/Tool"
-              className={`w-full text-black ${isActive("/Tool") ? "font-bold text-[#1C997F]" : ""}`}
+              className={`w-full text-black ${isActive("/Tool") ? "font-bold text-[#14BAB6]" : ""}`}
               size="lg"
             >
               Process Builder
@@ -297,7 +297,7 @@ export default function App() {
             <Link
               color="foreground"
               href="/Dashboard"
-              className={`w-full text-black ${isActive("/Dashboard") ? "font-bold text-[#1C997F]" : ""}`}
+              className={`w-full text-black ${isActive("/Dashboard") ? "font-bold text-[#14BAB6]" : ""}`}
               size="lg"
             >
               Dashboard
@@ -310,7 +310,7 @@ export default function App() {
             <Link
               color="foreground"
               href="/employee-dashboard"
-              className={`w-full text-black ${isActive("/employee-dashboard") ? "font-bold text-[#1C997F]" : ""}`}
+              className={`w-full text-black ${isActive("/employee-dashboard") ? "font-bold text-[#14BAB6]" : ""}`}
               size="lg"
             >
               Employee Dashboard

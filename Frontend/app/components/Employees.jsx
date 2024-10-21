@@ -207,7 +207,7 @@ const EmployeeManagement = () => {
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-3xl font-bold text-black">Employee Management</h1>
         <button
-          className="bg-[#1C997F] text-white py-2 px-4 rounded"
+          className="bg-[#14BAB6] text-white py-2 px-4 rounded"
           onClick={handleAdd}
         >
           Add Employee
@@ -224,7 +224,7 @@ const EmployeeManagement = () => {
       </div>
       <div className="overflow-auto max-h-[60vh]"> {/* Table should be scrollable */}
         <table className="min-w-full bg-white relative">
-          <thead className="sticky top-0 bg-[#1C997F] text-white">
+          <thead className="sticky top-0 bg-[#14BAB6] text-white">
             <tr>
               <th className="py-2 px-4">HR ID</th>
               <th className="py-2 px-4">Name</th>
@@ -361,7 +361,7 @@ const EmployeeManagement = () => {
               )}
               <button
                 type="submit"
-                className="bg-[#1C997F] text-white py-2 px-4 rounded"
+                className="bg-[#14BAB6] text-white py-2 px-4 rounded"
               >
                 {loadingAction ? (
                   <Spinner size="sm" color="white" />

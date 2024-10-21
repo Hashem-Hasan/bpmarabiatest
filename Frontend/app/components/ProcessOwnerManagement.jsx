@@ -156,7 +156,7 @@ const ProcessOwnerManagement = () => {
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-3xl font-bold">Process Owner Management</h1>
         <button
-          className="bg-[#1C997F] text-white py-2 px-4 rounded"
+          className="bg-[#14BAB6] text-white py-2 px-4 rounded"
           onClick={handleAddLink}
         >
           Add Link
@@ -177,7 +177,7 @@ const ProcessOwnerManagement = () => {
       {/* Links Table */}
       <div className="overflow-x-auto overflow-y-auto h-full">
         <table className="min-w-full bg-white">
-          <thead className="sticky top-0 bg-[#1C997F] text-white">
+          <thead className="sticky top-0 bg-[#14BAB6] text-white">
             <tr>
               <th className="py-2 px-4">HR ID</th>
               <th className="py-2 px-4">Process</th>
@@ -255,7 +255,7 @@ const ProcessOwnerManagement = () => {
               </button>
               <button
                 onClick={handleLink}
-                className="bg-[#1C997F] text-white py-2 px-4 rounded"
+                className="bg-[#14BAB6] text-white py-2 px-4 rounded"
               >
                 {loadingAction ? <Spinner size="sm" color="white" /> : "Link"}
               </button>

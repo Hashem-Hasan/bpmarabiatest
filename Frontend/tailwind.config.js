@@ -11,7 +11,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: "#1C997F", // Define the primary color for Tailwind and NextUI
+        primary: "#14BAB6", // Define the primary color for Tailwind and NextUI
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
@@ -26,12 +26,12 @@ module.exports = {
       themes: {
         light: {
           colors: {
-            primary: "#1C997F", // Custom primary color for NextUI
+            primary: "#14BAB6", // Custom primary color for NextUI
           },
         },
         dark: {
           colors: {
-            primary: "#1C997F", // Custom primary color for NextUI dark mode
+            primary: "#14BAB6", // Custom primary color for NextUI dark mode
           },
         },
       },

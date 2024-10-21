@@ -99,7 +99,7 @@ const EmployeeDashboard = () => {
       {/* Processes Grouped by Department */}
       <div className="w-full mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-semibold text-[#1C997F]">Processes ({totalProcesses})</h2>
+          <h2 className="text-2xl font-semibold text-[#14BAB6]">Processes ({totalProcesses})</h2>
           <div className="relative w-64">
             <Input
               clearable
@@ -119,7 +119,7 @@ const EmployeeDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full">
             {Object.entries(filteredGroupedProcesses).map(([dept, deptProcesses]) => (
               <div key={dept} className="p-6 bg-[#F7F9FC] rounded-lg shadow-md">
-                <h3 className="text-xl font-semibold text-[#1C997F] mb-4">{dept}</h3>
+                <h3 className="text-xl font-semibold text-[#14BAB6] mb-4">{dept}</h3>
                 {deptProcesses.map((process) => (
                   <div key={process._id} className="bg-white p-4 rounded-lg shadow-sm mb-4 flex justify-between items-center">
                     <div>
@@ -127,7 +127,7 @@ const EmployeeDashboard = () => {
                     </div>
                     <div className="flex space-x-2">
                       <Button
-                        className="bg-[#1C997F] text-white flex items-center"
+                        className="bg-[#14BAB6] text-white flex items-center"
                         onClick={() => handleShow(process)}
                         auto
                         icon={<FaEye />}

@@ -8,13 +8,15 @@ const Page = () => {
  
 
   return (
+    <ProtectedRoute>
     <section className='flex flex-col justify-center bg-[#F9F9F9] min-h-screen text-black '>
-      <ProtectedRoute />
+      
       <AdminDashboard />
       <DepartmentsWithProcesses />
-      <ProtectedRoute />
+      
 
     </section>
+    </ProtectedRoute >
   );
 }
 

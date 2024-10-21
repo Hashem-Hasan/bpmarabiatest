@@ -5,7 +5,7 @@ import { Spinner } from "@nextui-org/react";
 import axios from 'axios';
 
 const ProtectedRoute = ({
-  children,
+  children, // The content to be wrapped by the ProtectedRoute
   adminRedirect = "/",
   employeeRedirect = "/employee-dashboard",
   adminDashboard = "/Dashboard"
@@ -22,6 +22,7 @@ const ProtectedRoute = ({
 
       // If no tokens are present, redirect immediately
       if (!token && !employeeToken) {
+        setIsAuthenticated(false); // Set it to false since there are no tokens
         router.replace(adminRedirect);
         return;
       }
@@ -43,12 +44,14 @@ const ProtectedRoute = ({
               return;
             } else {
               localStorage.removeItem("employeeToken");
+              setIsAuthenticated(false); // Mark as unauthenticated
               router.replace(adminRedirect);
               return;
             }
           } catch (error) {
             console.error("Employee token validation failed:", error);
             localStorage.removeItem("employeeToken");
+            setIsAuthenticated(false); // Mark as unauthenticated
             router.replace(adminRedirect);
             return;
           }
@@ -70,27 +73,28 @@ const ProtectedRoute = ({
               return;
             } else {
               localStorage.removeItem("token");
+              setIsAuthenticated(false); // Mark as unauthenticated
               router.replace(adminRedirect);
               return;
             }
           } catch (error) {
             console.error("Admin token validation failed:", error);
             localStorage.removeItem("token");
+            setIsAuthenticated(false); // Mark as unauthenticated
             router.replace(adminRedirect);
             return;
           }
         }
 
-        // If tokens are invalid, redirect to adminRedirect
+        // If no valid tokens are found, redirect
+        setIsAuthenticated(false); // Mark as unauthenticated
         router.replace(adminRedirect);
       } catch (error) {
         console.error("Authentication check failed:", error);
         localStorage.removeItem("token");
         localStorage.removeItem("employeeToken");
+        setIsAuthenticated(false); // Mark as unauthenticated
         router.replace(adminRedirect);
-      } finally {
-        // Authentication check is complete
-        setIsAuthenticated(false); // Default to false if not authenticated
       }
     };
 
@@ -114,14 +118,14 @@ const ProtectedRoute = ({
 
   // Restrict employees to specific routes
   if (role === 'employee') {
-    const allowedEmployeeRoutes = ["/employee-dashboard", "/Tool"];
+    const allowedEmployeeRoutes = ["/employee-dashboard", "/Tool","/account-settings"];
     if (!allowedEmployeeRoutes.includes(pathname)) {
       router.replace(employeeRedirect);
       return null;
     }
   }
 
-  // Render children only when authenticated
+  // Render children when authenticated
   return isAuthenticated ? <>{children}</> : null;
 };
 

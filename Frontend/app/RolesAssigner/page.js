@@ -16,9 +16,9 @@ const Page = () => {
 
   return (
     <div className="h-screen overflow-hidden">
-      <ProtectedRoute />
+      <ProtectedRoute >
       <ProcessRoleAssignment />
-      <ProtectedRoute />
+      </ProtectedRoute >
     </div>
   );
 };

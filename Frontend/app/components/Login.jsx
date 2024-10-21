@@ -73,7 +73,7 @@ const Login = () => {
          style={{ backgroundImage: `url('https://s3-alpha-sig.figma.com/img/4d2f/74a5/053ec6179a7e5f4edef49e6efdd2115d?Expires=1729468800&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4&Signature=qWUYEdVqHqPT963FTuaBbi3yzsYZvIZFGnZ3N5Lu8m7W0oWHxHyR4T1diM8LzJ7M4iesXPbXCNDhaKhRo2XYDvaf5JSTFOPIDRODGLWI9QD~wMUYsSpfAA175J5VdEgjW8bg0T716uo~jKRz2DqKW6VEKyocUKYwfha4ecwXgaNfSQMzjELzXdyZc9Td~QBUqPCgoHzGtRBNtO82iV2RLKlSkjwiAHmKNS8E~l1ZInJf8WLEj~uJkcLTH5JEvTQ-MwQiOvohXaW1--ysikY~39HAjKZ8T~ZgmAcwHtRzycA4bwGiCtZ61d3W95ER6SIgEMRq~qVxFWGrzPRoGO7hzQ__')` }}
     >
       <div className="flex flex-col justify-center items-center w-full max-w-xl h-[550px] bg-white bg-opacity-50 rounded-3xl p-10 shadow-lg backdrop-filter backdrop-blur-md">
-        <h2 className="text-4xl font-bold text-center text-[#1C997F] mb-6">Process Mapping with us<br/>Process Notation with us</h2>
+        <h2 className="text-4xl font-bold text-center text-[#14BAB6] mb-6">Process Mapping with us<br/>Process Notation with us</h2>
         <p className="text-center text-gray-600 mb-6">Provide a network for all your needs with ease and fun using BPMN Arabia. Discover interesting features from us.</p>
         
         {/* Error Message */}
@@ -89,7 +89,7 @@ const Login = () => {
               onChange={(e) => setBusinessMail(e.target.value)}
               required
               placeholder="Enter your email address"
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 bg-transparent rounded-xl shadow-sm focus:outline-none focus:ring-[#1C997F] focus:border-[#1C997F]"
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 bg-transparent rounded-xl shadow-sm focus:outline-none focus:ring-[#14BAB6] focus:border-[#14BAB6]"
             />
           </div>
           <div>
@@ -100,13 +100,13 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="Enter your password"
-              className="mt-1 block w-full px-4 py-2 border bg-transparent border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-[#1C997F] focus:border-[#1C997F]"
+              className="mt-1 block w-full px-4 py-2 border bg-transparent border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-[#14BAB6] focus:border-[#14BAB6]"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-[#1C997F] text-white rounded-full shadow hover:bg-[#168b70] transition-colors"
+            className="w-full py-2 bg-[#14BAB6] text-white rounded-full shadow hover:bg-[#2c9b99] transition-colors"
           >
             {loading ? <Spinner size="sm" color="white" /> : 'Log in'}
           </button>

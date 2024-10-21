@@ -180,7 +180,7 @@ const ProcessRoleAssignment = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Process Role Assignment</h1>
         <button
-          className="bg-[#1C997F] text-white py-2 px-4 rounded"
+          className="bg-[#14BAB6] text-white py-2 px-4 rounded"
           onClick={() => setIsModalOpen(true)}
         >
           Add Assignment
@@ -201,7 +201,7 @@ const ProcessRoleAssignment = () => {
       {/* Assignments Table */}
       <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
         <table className="min-w-full bg-white">
-          <thead className="sticky top-0 bg-[#1C997F] text-white">
+          <thead className="sticky top-0 bg-[#14BAB6] text-white">
             <tr>
               <th className="py-2 px-4">Process</th>
               <th className="py-2 px-4">Role</th>
@@ -286,7 +286,7 @@ const ProcessRoleAssignment = () => {
               </button>
               <button
                 onClick={handleAssign}
-                className="bg-[#1C997F] text-white py-2 px-4 rounded"
+                className="bg-[#14BAB6] text-white py-2 px-4 rounded"
                 disabled={loadingAction}
               >
                 {loadingAction ? (

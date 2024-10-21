@@ -93,13 +93,13 @@ const AccountSettings = () => {
 </div>
         <CardHeader className="flex justify-between items-center px-6">
           <div>
-            <h2 className="text-3xl font-bold text-[#1C997F] mb-2">{userInfo.fullName}</h2>
+            <h2 className="text-3xl font-bold text-[#14BAB6] mb-2">{userInfo.fullName}</h2>
             <p className="text-gray-500">{isEmployee ? userInfo.email : userInfo.businessMail}</p> {/* Display businessMail for main user */}
           </div>
           <Button
             color={editing ? "success" : "primary"}
             onClick={() => setEditing(!editing)}
-            className="bg-[#1C997F] text-white"
+            className="bg-[#14BAB6] text-white"
           >
             {editing ? "Save" : "Edit"}
           </Button>
@@ -197,7 +197,7 @@ const AccountSettings = () => {
               color="success"
               onClick={handleSave}
               disabled={loading}
-              className="mr-4 text-white bg-[#1C997F]"
+              className="mr-4 text-white bg-[#14BAB6]"
             >
               {loading ? <Spinner size="sm" /> : "Save"}
             </Button>

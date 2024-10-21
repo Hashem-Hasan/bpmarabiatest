@@ -5,7 +5,9 @@ import ProtectedRoute from '../components/ProtectedRoute'
 const Page = () => {
   return (
     <div className='bg-white'>
+        <ProtectedRoute>
         <DepartmentStructure />
+        </ProtectedRoute>
     </div>
   )
 }
