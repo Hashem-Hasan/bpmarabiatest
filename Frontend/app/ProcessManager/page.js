@@ -15,7 +15,7 @@ const Page = () => {
   }, []);
 
   return (
-    <div className="flex flex-col bg-[#F9F9F9] min-h-screen text-black justify-center">
+    <div className="flex flex-col pt-16 bg-[#F9F9F9] min-h-screen text-black justify-center">
       <ProtectedRoute >
       <ProcessOwnerManagement />
       </ProtectedRoute >
