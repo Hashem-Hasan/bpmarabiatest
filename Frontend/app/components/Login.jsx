@@ -70,7 +70,7 @@ const Login = () => {
 
   return (
     <div className="flex items-center justify-center h-screen bg-cover bg-center text-black overflow-hidden"
-         style={{ backgroundImage: `url('https://s3-alpha-sig.figma.com/img/4d2f/74a5/053ec6179a7e5f4edef49e6efdd2115d?Expires=1729468800&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4&Signature=qWUYEdVqHqPT963FTuaBbi3yzsYZvIZFGnZ3N5Lu8m7W0oWHxHyR4T1diM8LzJ7M4iesXPbXCNDhaKhRo2XYDvaf5JSTFOPIDRODGLWI9QD~wMUYsSpfAA175J5VdEgjW8bg0T716uo~jKRz2DqKW6VEKyocUKYwfha4ecwXgaNfSQMzjELzXdyZc9Td~QBUqPCgoHzGtRBNtO82iV2RLKlSkjwiAHmKNS8E~l1ZInJf8WLEj~uJkcLTH5JEvTQ-MwQiOvohXaW1--ysikY~39HAjKZ8T~ZgmAcwHtRzycA4bwGiCtZ61d3W95ER6SIgEMRq~qVxFWGrzPRoGO7hzQ__')` }}
+    style={{ backgroundImage: `url("/Back.png")` }}
     >
       <div className="flex flex-col justify-center items-center w-full max-w-xl h-[550px] bg-white bg-opacity-50 rounded-3xl p-10 shadow-lg backdrop-filter backdrop-blur-md">
         <h2 className="text-4xl font-bold text-center text-[#14BAB6] mb-6">Process Mapping with us<br/>Process Notation with us</h2>
