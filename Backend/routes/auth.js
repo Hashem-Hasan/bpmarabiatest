@@ -40,13 +40,18 @@ router.get('/validate-token', unifiedAuthMiddleware, async (req, res) => {
   console.log('Decoded Token:', req.decoded);
 
   try {
+    let newToken = null;
+
     // Check for admin token
     if (req.decoded.userId) {
       console.log('Checking for admin user with userId:', req.decoded.userId);
       const user = await User.findById(req.decoded.userId);
       if (user) {
         console.log('Token belongs to admin:', user.email);
-        return res.status(200).json({ valid: true, role: 'admin' });
+
+        // Renew token expiry time
+        newToken = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
+        return res.status(200).json({ valid: true, role: 'admin', token: newToken });
       }
     }
 
@@ -56,7 +61,10 @@ router.get('/validate-token', unifiedAuthMiddleware, async (req, res) => {
       const employee = await Employee.findById(req.decoded._id);
       if (employee) {
         console.log('Token belongs to employee:', employee.email);
-        return res.status(200).json({ valid: true, role: 'employee' });
+
+        // Renew token expiry time
+        newToken = jwt.sign({ _id: employee._id }, secretKey, { expiresIn: '1h' });
+        return res.status(200).json({ valid: true, role: 'employee', token: newToken });
       }
     }
 
