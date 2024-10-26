@@ -21,13 +21,21 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware setup
+const allowedOrigins = [process.env.FRONTEND_URL, 'https://management.bpmarabia.app', 'http://localhost:3000'];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL && 'https://management.bpmarabia.app' && 'http://localhost:3000', // Replace with your frontend's URL
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(bodyParser.json());
-app.use(express.json()); 
-app.use(bodyParser.urlencoded({ extended: true })); // For URL-encoded bodies
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // MongoDB connection
