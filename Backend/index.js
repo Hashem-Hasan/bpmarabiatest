@@ -22,7 +22,7 @@ const port = process.env.PORT || 3001;
 
 // Middleware setup
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://management.bpmarabia.app', // Replace with your frontend's URL
+  origin: process.env.FRONTEND_URL && 'https://management.bpmarabia.app' && 'http://localhost:3000', // Replace with your frontend's URL
   credentials: true,
 }));
 app.use(bodyParser.json());
