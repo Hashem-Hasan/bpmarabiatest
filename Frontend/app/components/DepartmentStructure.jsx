@@ -258,13 +258,13 @@ const DepartmentStructure = () => {
               <p className="text-sm font-bold">{department.name}</p>
               <div className="flex space-x-2 mt-2">
                 <button
-                  className="bg-[#14BAB6] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
+                  className="text-[#14BAB6] rounded-full p-1 hover:text-[#15986a] focus:outline-none transition-all"
                   onClick={() => setShowInput(department._id)}
                 >
                   <FaPlus size={14} />
                 </button>
                 <button
-                  className="bg-gray-400 text-white rounded-full p-1 hover:bg-gray-500 focus:outline-none"
+                  className="text-gray-400 rounded-full p-1 hover:text-gray-500 focus:outline-none transition-all"
                   onClick={() => {
                     setEditDepartmentId(department._id);
                     setEditDepartmentName(department.name);
@@ -274,7 +274,7 @@ const DepartmentStructure = () => {
                 </button>
                 {department.subDepartments?.length === 0 && (
                   <button
-                    className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none"
+                    className="text-red-500 rounded-full p-1 hover:text-red-600 focus:outline-none transition-all"
                     onClick={() => handleConfirmation("delete", department)}
                   >
                     <FaTrash size={14} />
@@ -355,13 +355,13 @@ const DepartmentStructure = () => {
               <p className="text-sm font-bold">{department.name}</p>
               <div className="flex space-x-2">
                 <button
-                  className="bg-[#14BAB6] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
+                  className="text-[#14BAB6] rounded-full p-1 hover:text-[#15986a] focus:outline-none transition-all"
                   onClick={() => setShowInput(department._id)}
                 >
                   <FaPlus size={14} />
                 </button>
                 <button
-                  className="bg-yellow-500 text-white rounded-full p-1 hover:bg-yellow-600 focus:outline-none"
+                  className="text-gray-400 rounded-full p-1 hover:text-gray-500 focus:outline-none transition-all"
                   onClick={() => {
                     setEditDepartmentId(department._id);
                     setEditDepartmentName(department.name);
@@ -371,7 +371,7 @@ const DepartmentStructure = () => {
                 </button>
                 {department.subDepartments?.length === 0 && (
                   <button
-                    className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none"
+                    className="text-red-500 rounded-full p-1 hover:text-red-600 focus:outline-none transition-all"
                     onClick={() => handleConfirmation("delete", department)}
                   >
                     <FaTrash size={14} />

@@ -261,13 +261,13 @@ const CompanyStructure = () => {
               <p className="text-sm font-bold">{role.name}</p>
               <div className="flex space-x-2 mt-2">
                 <button
-                  className="bg-[#14BAB6] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
+                  className=" text-[#14BAB6] rounded-full p-1 hover:text-[#15986a] focus:outline-none transition-all"
                   onClick={() => setShowInput(role._id)}
                 >
                   <FaPlus size={14} />
                 </button>
                 <button
-                  className="bg-gray-400 text-white rounded-full p-1 hover:bg-gray-500 focus:outline-none"
+                  className=" text-gray-400 rounded-full p-1 hover:text-gray-500 focus:outline-none transition-all"
                   onClick={() => {
                     setEditRoleId(role._id);
                     setEditRoleName(role.name);
@@ -277,7 +277,7 @@ const CompanyStructure = () => {
                 </button>
                 {role.subRoles?.length === 0 && (
                   <button
-                    className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none"
+                    className=" text-red-500 rounded-full p-1 hover:text-red-600 focus:outline-none transition-all"
                     onClick={() => handleConfirmation("delete", role)}
                   >
                     <FaTrash size={14} />
@@ -358,13 +358,13 @@ const CompanyStructure = () => {
               <p className="text-sm font-bold">{role.name}</p>
               <div className="flex space-x-2">
                 <button
-                  className="bg-[#14BAB6] text-white rounded-full p-1 hover:bg-[#15986a] focus:outline-none"
+                  className="text-[#14BAB6] rounded-full p-1 hover:text-[#15986a] focus:outline-none transition-all"
                   onClick={() => setShowInput(role._id)}
                 >
                   <FaPlus size={14} />
                 </button>
                 <button
-                  className="bg-yellow-500 text-white rounded-full p-1 hover:bg-yellow-600 focus:outline-none"
+                  className="text-gray-400 rounded-full p-1 hover:text-gray-500 focus:outline-none transition-all"
                   onClick={() => {
                     setEditRoleId(role._id);
                     setEditRoleName(role.name);
@@ -374,7 +374,7 @@ const CompanyStructure = () => {
                 </button>
                 {role.subRoles?.length === 0 && (
                   <button
-                    className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none"
+                    className="text-red-500 rounded-full p-1 hover:text-red-600 focus:outline-none transition-all"
                     onClick={() => handleConfirmation("delete", role)}
                   >
                     <FaTrash size={14} />
