@@ -6,7 +6,8 @@ import Modal from './Modal';
 import {
   FaEdit,
   FaTrashAlt,
-  FaCheckCircle,
+  FaLock,
+  FaUnlock,
   FaTimesCircle,
   FaChevronDown,
   FaChevronUp,
@@ -267,14 +268,14 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
                         {loadingVerification === diagram._id ? (
                           <Spinner size='sm' color='warning' />
                         ) : diagram.isVerified ? (
-                          <FaTimesCircle
+                          <FaLock 
                             onClick={() =>
                               toggleVerification(diagram._id, diagram.isVerified)
                             }
                             className='text-yellow-500 cursor-pointer'
                           />
                         ) : (
-                          <FaCheckCircle
+                          <FaUnlock
                             onClick={() =>
                               toggleVerification(diagram._id, diagram.isVerified)
                             }
