@@ -10,10 +10,10 @@ const Page = () => {
   return (
     <ProtectedRoute>
     <section className='flex flex-col justify-center bg-[#F9F9F9] min-h-screen text-black '>
-      
+      <section className='scale-50 md:scale-60 lg:scale-80 xl:scale-85 2xl:scale-100'>
       <AdminDashboard />
       <DepartmentsWithProcesses />
-      
+      </section>
 
     </section>
     </ProtectedRoute >
