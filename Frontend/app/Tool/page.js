@@ -71,7 +71,7 @@ const Home = () => {
   return (
     <div className='bg-[#FDFDFD]  text-black h-screen w-full text-center flex justify-center items-center overflow-hidden'>
       <ProtectedRoute >
-      <div className="h-full scale-75 md:scale-80 lg:scale-90 xl:scale-100 w-full flex justify-center items-center">
+      <div className="h-full scale-50 md:scale-60 lg:scale-80 xl:scale-100 w-full flex justify-center items-center">
         <BpmnEditor
           key={editorKey}
           onSave={saveDiagram}
