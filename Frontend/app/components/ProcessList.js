@@ -169,7 +169,9 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
           },
         }
       );
+      
       const updatedDiagram = response.data;
+      
 
       setDiagrams((prevDiagrams) => {
         const index = prevDiagrams.findIndex(
@@ -181,7 +183,10 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
           return updatedDiagrams;
         }
         return prevDiagrams;
-      });
+        
+      }
+      
+    );
 
       updateFilteredDiagrams(
         diagrams.map((diagram) =>

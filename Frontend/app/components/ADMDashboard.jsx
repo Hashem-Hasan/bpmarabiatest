@@ -79,36 +79,36 @@ const AdminDashboard = () => {
   return (
     <div className="admin-dashboard p-8 flex flex-col items-center">
       {/* Modernized Tab-like Buttons Section */}
-      <div className="flex font-semibold justify-center rounded-lg border-gray-300 bg-white h-16 px-6 items-center w-fit mb-8 space-x-6">
+      <div className="flex font-semibold justify-center rounded-lg border-gray-300 bg-white h-16 px-6 items-center w-[1200px] mb-8 space-x-6">
         <a
           href="/DStructure"
           className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
-          Departments Structure
+          Departments
         </a>
         <a
           href="/Structure"
           className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
-          Roles Structure
+          Roles
         </a>
         <a
           href="/employeesys"
           className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
-          Employees Management
+          Employees
         </a>
         <a
           href="/Tool"
           className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
-          Processes Management
+          Processes
         </a>
         <a
           href="/ProcessManager"
           className="text-gray-500 hover:text-[#14BAB6] border-b-2 border-transparent hover:border-[#14BAB6] py-1 transition-all"
         >
-          Process Owners Management
+          Process Owners
         </a>
         <a
           href="/RolesAssigner"

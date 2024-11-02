@@ -16,6 +16,8 @@ import axios from "axios";
 import Modal from "./Modal"; // Import the custom modal component
 import { motion, AnimatePresence } from "framer-motion";
 import { Spinner, Input, Button } from "@nextui-org/react";
+import { useDrag } from '@use-gesture/react';
+
 
 const CompanyStructure = () => {
   const [structure, setStructure] = useState([]);
@@ -38,6 +40,7 @@ const CompanyStructure = () => {
 
   const containerRef = useRef(null);
 
+  
   useEffect(() => {
     fetchStructure();
   }, []);
@@ -221,11 +224,7 @@ const CompanyStructure = () => {
       });
   };
 
-  const toggleExpand = (roleId) => {
-    setExpandedRoles((prev) =>
-      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]
-    );
-  };
+  
 
   const renderRolesTree = (roles, isRoot = false) => {
     return (
@@ -238,36 +237,23 @@ const CompanyStructure = () => {
             {!isRoot && (
               <div className="absolute top-0 left-1/2 w-px h-4 bg-gray-400"></div>
             )}
-
+  
             <motion.div
               className="bg-[#F7F9FC] border border-gray-300 rounded-xl shadow-md p-4 text-black flex flex-col items-center relative"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {role.subRoles && role.subRoles.length > 0 && (
-                <button
-                  onClick={() => toggleExpand(role._id)}
-                  className="absolute top-2 right-2 text-gray-600 hover:text-gray-800 focus:outline-none"
-                >
-                  {expandedRoles.includes(role._id) ? (
-                    <FaChevronDown size={14} />
-                  ) : (
-                    <FaChevronRight size={14} />
-                  )}
-                </button>
-              )}
-
               <p className="text-sm font-bold">{role.name}</p>
               <div className="flex space-x-2 mt-2">
                 <button
-                  className=" text-[#14BAB6] rounded-full p-1 hover:text-[#15986a] focus:outline-none transition-all"
+                  className="text-[#14BAB6] rounded-full p-1 hover:text-[#15986a] focus:outline-none transition-all"
                   onClick={() => setShowInput(role._id)}
                 >
                   <FaPlus size={14} />
                 </button>
                 <button
-                  className=" text-gray-400 rounded-full p-1 hover:text-gray-500 focus:outline-none transition-all"
+                  className="text-gray-400 rounded-full p-1 hover:text-gray-500 focus:outline-none transition-all"
                   onClick={() => {
                     setEditRoleId(role._id);
                     setEditRoleName(role.name);
@@ -277,7 +263,7 @@ const CompanyStructure = () => {
                 </button>
                 {role.subRoles?.length === 0 && (
                   <button
-                    className=" text-red-500 rounded-full p-1 hover:text-red-600 focus:outline-none transition-all"
+                    className="text-red-500 rounded-full p-1 hover:text-red-600 focus:outline-none transition-all"
                     onClick={() => handleConfirmation("delete", role)}
                   >
                     <FaTrash size={14} />
@@ -323,8 +309,8 @@ const CompanyStructure = () => {
                 </div>
               )}
             </motion.div>
-
-            {role.subRoles && role.subRoles.length > 0 && expandedRoles.includes(role._id) && (
+  
+            {role.subRoles && role.subRoles.length > 0 && (
               <AnimatePresence>
                 <motion.div
                   className="flex flex-col items-center mt-4"
@@ -430,33 +416,40 @@ const CompanyStructure = () => {
   };
 
   return (
-    <div className="company-structure-container flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg shadow-lg min-h-screen overflow-hidden">
+    <div className="company-structure-container flex flex-col items-start text-center p-8 bg-white rounded-lg shadow-lg min-h-screen overflow-hidden">
       {loading ? (
-        <Spinner size="lg" color="primary" />
+        <div className="flex justify-center items-center w-full h-full">
+          <Spinner size="lg" color="primary" />
+        </div>
       ) : (
-        <>
-          <h1 className="text-4xl font-bold mb-6 text-black">
+        <div className="w-full mt-20">
+          {/* Title at the Top Left */}
+          <h1 className="text-4xl font-bold text-black text-left w-full mb-4">
             Define Company Structure
           </h1>
-
-          <Button
-            className="mb-4 bg-[#14BAB6] text-white flex items-center"
-            onClick={() => setViewMode(viewMode === "tree" ? "list" : "tree")}
-            auto
-          >
-            {viewMode === "tree" ? (
-              <>
-                <FaList className="mr-2" />
-                Switch to List View
-              </>
-            ) : (
-              <>
-                <FaSitemap className="mr-2" />
-                Switch to Tree View
-              </>
-            )}
-          </Button>
-
+  
+          {/* Centered Button */}
+          <div className="flex justify-center mb-6">
+            <Button
+              className="bg-[#14BAB6] text-white flex items-center"
+              onClick={() => setViewMode(viewMode === "tree" ? "list" : "tree")}
+              auto
+            >
+              {viewMode === "tree" ? (
+                <>
+                  <FaList className="mr-2" />
+                  Switch to List View
+                </>
+              ) : (
+                <>
+                  <FaSitemap className="mr-2" />
+                  Switch to Tree View
+                </>
+              )}
+            </Button>
+          </div>
+  
+          {/* Root Role Input */}
           <div className="add-root-role mb-6 w-full max-w-md">
             {!structure.length && (
               <div>
@@ -484,17 +477,18 @@ const CompanyStructure = () => {
               </div>
             )}
           </div>
-
+  
+          {/* Scrollable Area for Roles Tree/List */}
           {viewMode === "tree" ? (
-            <div className="roles-tree w-full overflow-y-auto h-96" ref={containerRef}>
+            <div className="roles-tree w-full overflow-y-auto h-[600px] p-4 border rounded-lg" ref={containerRef}>
               {structure.length > 0 && (
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-start">
                   {renderRolesTree(structure, true)}
                 </div>
               )}
             </div>
           ) : (
-            <div className="roles-list w-full overflow-y-auto h-96" ref={containerRef}>
+            <div className="roles-list w-full overflow-y-auto h-[600px] p-4 border rounded-lg" ref={containerRef}>
               {structure.length > 0 && (
                 <div className="flex flex-col items-center">
                   {renderRolesList(structure)}
@@ -502,9 +496,10 @@ const CompanyStructure = () => {
               )}
             </div>
           )}
-        </>
+        </div>
       )}
-
+  
+      {/* Confirmation Modal */}
       <Modal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
@@ -517,6 +512,8 @@ const CompanyStructure = () => {
       </Modal>
     </div>
   );
+  
+  
 };
 
 export default CompanyStructure;

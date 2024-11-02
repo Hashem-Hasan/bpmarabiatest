@@ -235,26 +235,13 @@ const DepartmentStructure = () => {
             {!isRoot && (
               <div className="absolute top-0 left-1/2 w-px h-4 bg-gray-400"></div>
             )}
-
+  
             <motion.div
               className="bg-[#F7F9FC] border border-gray-300 rounded-xl shadow-md p-4 text-black flex flex-col items-center relative"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              {department.subDepartments && department.subDepartments.length > 0 && (
-                <button
-                  onClick={() => toggleExpand(department._id)}
-                  className="absolute top-2 right-2 text-gray-600 hover:text-gray-800 focus:outline-none"
-                >
-                  {expandedDepartments.includes(department._id) ? (
-                    <FaChevronDown size={14} />
-                  ) : (
-                    <FaChevronRight size={14} />
-                  )}
-                </button>
-              )}
-
               <p className="text-sm font-bold">{department.name}</p>
               <div className="flex space-x-2 mt-2">
                 <button
@@ -320,29 +307,21 @@ const DepartmentStructure = () => {
                 </div>
               )}
             </motion.div>
-
-            {department.subDepartments && department.subDepartments.length > 0 && expandedDepartments.includes(department._id) && (
-              <AnimatePresence>
-                <motion.div
-                  className="flex flex-col items-center mt-4"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="w-px h-4 bg-gray-400"></div>
-                  <div className="flex justify-center items-start">
-                    {renderDepartmentsTree(department.subDepartments)}
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+  
+            {department.subDepartments && department.subDepartments.length > 0 && (
+              <div className="flex flex-col items-center mt-4">
+                <div className="w-px h-4 bg-gray-400"></div>
+                <div className="flex justify-center items-start">
+                  {renderDepartmentsTree(department.subDepartments)}
+                </div>
+              </div>
             )}
           </div>
         ))}
       </div>
     );
   };
-
+  
   const renderDepartmentsList = (departments) => {
     return (
       <div className="flex flex-col items-start">
@@ -415,46 +394,47 @@ const DepartmentStructure = () => {
                 </button>
               </div>
             )}
-            {department.subDepartments &&
-              department.subDepartments.length > 0 && (
-                <div className="ml-6 mt-2">
-                  {renderDepartmentsList(department.subDepartments)}
-                </div>
-              )}
+            {department.subDepartments && department.subDepartments.length > 0 && (
+              <div className="ml-6 mt-2">
+                {renderDepartmentsList(department.subDepartments)}
+              </div>
+            )}
           </div>
         ))}
       </div>
     );
   };
-
+  
   return (
-    <div className="department-structure-container flex flex-col items-center justify-center text-center p-8 bg-white rounded-lg shadow-lg min-h-screen overflow-x-hidden">
+    <div className="department-structure-container flex flex-col items-start text-center p-8 bg-white rounded-lg shadow-lg min-h-screen overflow-hidden">
       {loading ? (
         <Spinner size="lg" color="primary" />
       ) : (
-        <>
-          <h1 className="text-4xl font-bold mb-6 text-black">
+        <div className="w-full mt-20">
+          <h1 className="text-4xl font-bold text-black text-left w-full mb-4">
             Define Department Structure
           </h1>
-
-          <Button
-            className="mb-4 bg-[#14BAB6] text-white flex items-center"
-            onClick={() => setViewMode(viewMode === "tree" ? "list" : "tree")}
-            auto
-          >
-            {viewMode === "tree" ? (
-              <>
-                <FaList className="mr-2" />
-                Switch to List View
-              </>
-            ) : (
-              <>
-                <FaSitemap className="mr-2" />
-                Switch to Tree View
-              </>
-            )}
-          </Button>
-
+  
+          <div className="flex justify-center mb-6">
+            <Button
+              className="bg-[#14BAB6] text-white flex items-center"
+              onClick={() => setViewMode(viewMode === "tree" ? "list" : "tree")}
+              auto
+            >
+              {viewMode === "tree" ? (
+                <>
+                  <FaList className="mr-2" />
+                  Switch to List View
+                </>
+              ) : (
+                <>
+                  <FaSitemap className="mr-2" />
+                  Switch to Tree View
+                </>
+              )}
+            </Button>
+          </div>
+  
           <div className="add-root-department mb-6 w-full max-w-md">
             {!structure.length && (
               <div>
@@ -482,20 +462,17 @@ const DepartmentStructure = () => {
               </div>
             )}
           </div>
-
+  
           {viewMode === "tree" ? (
-            <div
-              className="departments-tree w-full overflow-x-auto"
-              ref={containerRef}
-            >
+            <div className="departments-tree w-full overflow-y-auto h-[600px] p-4 border rounded-lg" ref={containerRef}>
               {structure.length > 0 && (
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-start">
                   {renderDepartmentsTree(structure, true)}
                 </div>
               )}
             </div>
           ) : (
-            <div className="departments-list w-full" ref={containerRef}>
+            <div className="departments-list w-full  overflow-y-auto h-[600px] p-4 border rounded-lg" ref={containerRef}>
               {structure.length > 0 && (
                 <div className="flex flex-col items-center">
                   {renderDepartmentsList(structure)}
@@ -503,15 +480,14 @@ const DepartmentStructure = () => {
               )}
             </div>
           )}
-        </>
+        </div>
       )}
-
+  
       <Modal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
         title={confirmAction === "delete" ? "Delete Department" : "Edit Department"}
         onConfirm={confirmAction === "delete" ? confirmDeleteDepartment : confirmEditDepartment}
-        hideFooter={false}
       >
         <p className="text-black">
           Are you sure you want to {confirmAction} this department?
@@ -519,6 +495,6 @@ const DepartmentStructure = () => {
       </Modal>
     </div>
   );
+  
 };
-
 export default DepartmentStructure;
