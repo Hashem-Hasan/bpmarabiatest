@@ -122,6 +122,7 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     modelerRef.current = new BpmnModeler({
       container: '#bpmn-container',
       width: '100%',
+      hideLogo: true,
       additionalModules: [
         {
           __init__: ['customPaletteProvider'],

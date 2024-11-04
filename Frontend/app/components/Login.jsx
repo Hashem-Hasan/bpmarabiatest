@@ -73,8 +73,8 @@ const Login = () => {
     style={{ backgroundImage: `url("/Back.png")` }}
     >
       <div className="flex flex-col justify-center items-center w-full max-w-xl h-[550px] bg-white bg-opacity-50 rounded-3xl p-10 shadow-lg backdrop-filter backdrop-blur-md">
-        <h2 className="text-4xl font-bold text-center text-[#14BAB6] mb-6">Process Mapping with us<br/>Process Notation with us</h2>
-        <p className="text-center text-gray-600 mb-6">Provide a network for all your needs with ease and fun using BPMN Arabia. Discover interesting features from us.</p>
+        <h2 className="text-4xl font-bold text-center text-[#14BAB6] mb-6">Business Orchestration using BPMN</h2>
+        <p className="text-center text-gray-600 mb-6">Design, Improve, Manage & Communicate your business processes at one place.</p>
         
         {/* Error Message */}
         {errorMessage && <p className="text-red-500 text-center mb-6">{errorMessage}</p>}

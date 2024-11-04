@@ -62,3 +62,20 @@ body {
 .scroll-smooth {
   scroll-behavior: smooth;
 }
+
+.bjs-powered-by {
+  display: none !important;
+}
+
+@keyframes slide {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-100% + 130px)); /* Adjust 130px as per the visible width */
+  }
+}
+
+.hover\:animate-slide:hover {
+  animation: slide 0.5s ease forwards;
+}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { motion } from 'framer-motion'; // Import framer-motion
+import { motion } from 'framer-motion';
 import { Spinner } from "@nextui-org/react";
 import Modal from './Modal';
 import {
@@ -11,13 +11,14 @@ import {
   FaTimesCircle,
   FaChevronDown,
   FaChevronUp,
+  FaEye,
 } from 'react-icons/fa';
 
 const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
   const [diagrams, setDiagrams] = useState([]);
   const [filteredDiagrams, setFilteredDiagrams] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [expandedDepartments, setExpandedDepartments] = useState([]); // Changed from single value to array
+  const [expandedDepartments, setExpandedDepartments] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -60,7 +61,6 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
         );
         const updatedDiagrams = [...diagrams, ...newDiagrams];
         setDiagrams(updatedDiagrams);
-        // Update filteredDiagrams and departments based on updatedDiagrams
         updateFilteredDiagrams(updatedDiagrams, searchTerm);
 
         if (newDiagrams.length < 5) {
@@ -142,7 +142,7 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
   const editDiagram = (diagram) => {
     if (diagram.isVerified) {
       alert(
-        'This Process is verified. Unverify it or contact your administrator to unverify it, or your edits will not be saved!'
+        'This process is verified. You can view it, but edits will not be saved. Unverify it or contact your administrator to make changes.'
       );
     }
     if (onDiagramSelect) {
@@ -160,7 +160,7 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
     const token = mainUserToken;
     setLoadingVerification(id);
     try {
-      const response = await axios.put(
+      await axios.put(
         `${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/toggle-verify/${id}`,
         {},
         {
@@ -169,31 +169,19 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
           },
         }
       );
-      
-      const updatedDiagram = response.data;
-      
 
+      // Update only the isVerified status in the local state
       setDiagrams((prevDiagrams) => {
-        const index = prevDiagrams.findIndex(
-          (diagram) => diagram._id === updatedDiagram._id
-        );
-        if (index !== -1) {
-          const updatedDiagrams = [...prevDiagrams];
-          updatedDiagrams[index] = updatedDiagram;
-          return updatedDiagrams;
-        }
-        return prevDiagrams;
-        
-      }
-      
-    );
+        const updatedDiagrams = prevDiagrams.map((diagram) => {
+          if (diagram._id === id) {
+            return { ...diagram, isVerified: !isVerified };
+          }
+          return diagram;
+        });
 
-      updateFilteredDiagrams(
-        diagrams.map((diagram) =>
-          diagram._id === updatedDiagram._id ? updatedDiagram : diagram
-        ),
-        searchTerm
-      );
+        updateFilteredDiagrams(updatedDiagrams, searchTerm);
+        return updatedDiagrams;
+      });
     } catch (err) {
       console.error('Error toggling verification:', err);
     } finally {
@@ -256,35 +244,48 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
               {diagrams.map((diagram) => (
                 <div
                   key={diagram._id}
-                  className='flex justify-between p-2 border-b-2 border-gray-200  '
+                  className='flex justify-between py-2 border-b-2 border-gray-200  '
                 >
-                  <div className='flex items-center space-x-4'>
-                    <span className=''>{diagram.name}</span>
-                    <FaEdit
-                      onClick={() => editDiagram(diagram)}
-                      className='text-blue-500 cursor-pointer'
-                    />
+                  <div className='flex items-center text-left space-x-2'>
+                    <span
+                      className='truncate text-sm w-[150px]'
+                      title={diagram.name}
+                    >
+                      {diagram.name}
+                    </span>
+                    {diagram.isVerified ? (
+                      <FaEye
+                        
+                        onClick={() => editDiagram(diagram)}
+                        className='text-blue-500 text-sm cursor-pointer'
+                      />
+                    ) : (
+                      <FaEdit
+                        onClick={() => editDiagram(diagram)}
+                        className='text-blue-500 text-sm cursor-pointer'
+                      />
+                    )}
                     {mainUserToken && (
                       <>
                         <FaTrashAlt
                           onClick={() => confirmDelete(diagram._id)}
-                          className='text-red-500 cursor-pointer'
+                          className='text-red-500 text-sm cursor-pointer'
                         />
                         {loadingVerification === diagram._id ? (
                           <Spinner size='sm' color='warning' />
                         ) : diagram.isVerified ? (
-                          <FaLock 
+                          <FaLock
                             onClick={() =>
                               toggleVerification(diagram._id, diagram.isVerified)
                             }
-                            className='text-yellow-500 cursor-pointer'
+                            className='text-yellow-500 text-sm cursor-pointer'
                           />
                         ) : (
                           <FaUnlock
                             onClick={() =>
                               toggleVerification(diagram._id, diagram.isVerified)
                             }
-                            className='text-green-500 cursor-pointer'
+                            className='text-green-500 text-sm cursor-pointer'
                           />
                         )}
                       </>
