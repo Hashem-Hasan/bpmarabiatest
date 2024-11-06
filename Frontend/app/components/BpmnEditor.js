@@ -61,7 +61,7 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
 
       // Set the selected department
       if (selectedDiagram && selectedDiagram.department) {
-        setSelectedDepartment(selectedDiagram.department);
+        setSelectedDepartment(selectedDiagram.department._id); // Updated line
       } else {
         setSelectedDepartment(''); // Default to empty if no department
       }
@@ -191,7 +191,7 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
 
       // Set selected department or default
       if (selectedDiagram.department) {
-        setSelectedDepartment(selectedDiagram.department);
+        setSelectedDepartment(selectedDiagram.department._id); // Updated line
       } else {
         setSelectedDepartment(''); // Default to empty if no department
       }

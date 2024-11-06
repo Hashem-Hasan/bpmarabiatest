@@ -48,6 +48,7 @@ export default function App() {
       setIsMainUser(false);
     } else {
       setLoading(false);
+      setIsMainUser(false); // Add this line
     }
 
     const intervalId = setInterval(() => {
@@ -70,6 +71,7 @@ export default function App() {
         setIsMainUser(false);
       } else {
         setLoggedInUser(null);
+        setIsMainUser(false); // Add this line
       }
     };
 
@@ -139,6 +141,7 @@ export default function App() {
       localStorage.removeItem("employeeToken");
     }
     setLoggedInUser(null);
+    setIsMainUser(false); // Add this line
     router.push("/");
   };
 
