@@ -8,7 +8,6 @@ import {
   FaTrashAlt,
   FaLock,
   FaUnlock,
-  FaTimesCircle,
   FaChevronDown,
   FaChevronUp,
   FaEye,
@@ -33,6 +32,7 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
     if (mainUserToken || employeeToken) {
       fetchDiagrams(page);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, mainUserToken, employeeToken]);
 
   const fetchDiagrams = async (page) => {
@@ -248,14 +248,17 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
                 >
                   <div className='flex items-center text-left space-x-2'>
                     <span
-                      className='truncate text-sm w-[150px]'
+                      className='truncate text-sm w-[120px]'
                       title={diagram.name}
                     >
                       {diagram.name}
                     </span>
+                    {/* Display the version next to the diagram name */}
+                    <span className='text-gray-500 text-xs'>
+                      {diagram.version || 'V0'}
+                    </span>
                     {diagram.isVerified ? (
                       <FaEye
-                        
                         onClick={() => editDiagram(diagram)}
                         className='text-blue-500 text-sm cursor-pointer'
                       />
