@@ -2,6 +2,7 @@
 import React from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { MdSaveAlt } from "react-icons/md";
 import axios from 'axios';
 
 const DiagramExporter = ({ modelerRef, diagramToEdit, diagramName }) => {
@@ -111,9 +112,9 @@ const DiagramExporter = ({ modelerRef, diagramToEdit, diagramName }) => {
   return (
     <button 
       onClick={exportDiagram} 
-      className="text-center w-full text-gray-500 py-2 px-4 rounded-md transition-all hover:bg-gray-200"
+      className="text-center text-2xl w-full text-black py-2 px-4 rounded-md transition-all hover:bg-gray-200"
     >
-      Export as PDF
+      <MdSaveAlt />
     </button>
   );
 };

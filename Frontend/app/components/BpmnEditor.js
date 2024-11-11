@@ -502,9 +502,9 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
   };
 
   return (
-    <div className="flex">
+    <div className="flex w-full h-full">
       {/* Left column: ProcessList */}
-      <div className="w-[250px] mr-2 flex-shrink-0">
+      <div className=" w-1/6  flex-shrink-0">
         <ProcessList
           onDiagramSelect={setSelectedDiagram}
           mainUserToken={mainUserToken}
@@ -515,7 +515,7 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       {/* Main content */}
       <div className="flex flex-col flex-grow">
         {/* Top bar */}
-        <div className="flex justify-between items-center mb-4 px-4">
+        <div className="flex justify-between items-center mb-2 mt-2 px-4">
           {/* Left side: Diagram name input and department selector */}
           <div className="flex items-center space-x-2">
             {/* Diagram name input */}
@@ -542,7 +542,7 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
                   {({ open }) => (
                     <>
                       <div className="relative">
-                        <Listbox.Button className="relative cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <Listbox.Button className="relative w-60 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                           <span className="block truncate">
                             {getDepartmentNameById(selectedDepartment) || 'Select Department'}
                           </span>
@@ -576,38 +576,41 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
           {/* Right side: Buttons */}
           <div className="flex items-center space-x-2">
             {(!selectedDiagram && !isDiagramLoaded) && (
-              <Button
+              <button
                 auto
                 flat
                 onClick={createNewDiagram}
                 disabled={loading}
-                className="mx-1"
+                className="text-center text-xl w-full text-[#14BAB6] py-2 px-4 rounded-md transition-all hover:bg-gray-200"
               >
                 <FaPlus />
-              </Button>
+              </button>
             )}
 
             {(selectedDiagram || isDiagramLoaded) && (
-              <Button
+              <button
                 auto
                 flat
                 onClick={clearSelection}
                 disabled={loading}
-                className="mx-1"
+                className="text-center text-xl w-full text-black py-2 px-4 rounded-md transition-all hover:bg-gray-200"
               >
                 <FaTrashAlt />
-              </Button>
+              </button>
             )}
 
-            <Button
-              auto
-              flat
-              onClick={saveDiagram}
-              disabled={loading || !diagramName.trim() || !isDiagramLoaded}
-              className="mx-1"
-            >
-              {loading ? <Spinner size="sm" color="primary" /> : <FaSave />}
-            </Button>
+<button
+  onClick={saveDiagram}
+  disabled={loading || !diagramName.trim() || !isDiagramLoaded}
+  className={`text-center text-xl w-full py-2 px-4 rounded-md transition-all ${
+    loading || !diagramName.trim() || !isDiagramLoaded
+      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' // Disabled styles
+      : 'text-black hover:bg-gray-200' // Enabled styles
+  }`}
+>
+  {loading ? <Spinner size="sm" color="primary" /> : <FaSave />}
+</button>
+
 
             {/* DiagramExporter with icon-only button */}
             <DiagramExporter
@@ -622,13 +625,13 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
         {/* BPMN editor */}
         <div
           id="bpmn-container"
-          className="flex-grow h-[600px] w-[1000px] shadow-lg rounded-2xl border border-gray-300 mb-4"
+          className="flex-grow h-full w-full border-y-1 border-gray-300 "
         ></div>
       </div>
 
       {/* Right column: Attachments and comments */}
-      <div className="flex flex-col items-center w-[250px] flex-shrink-0">
-        <div className="w-full p-6 flex flex-col h-[600px]">
+      <div className="flex flex-col border-l-1 border-gray-300 h-full items-center w-1/6 flex-shrink-0">
+        <div className="w-full p-6 flex bg- flex-col h-[600px] ">
           {selectedElement ? (
             <>
               <h3 className="text-2xl font-bold mb-3">Attachments</h3>

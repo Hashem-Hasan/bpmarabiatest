@@ -199,13 +199,13 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
   };
 
   return (
-    <div className='shadow-md w-full border-1 border-gray-300 items-center mx-auto rounded-lg h-[657px] overflow-y-auto p-4'>
+    <div className=' w-full border-r-1 border-gray-300 items-center mx-auto  h-full overflow-y-auto p-4'>
       <div className='relative flex flex-col items-start w-full'>
         <h2 className='text-xl mb-2 text-[#14BAB6] font-bold'>Processes</h2>
 
         <input
           type='text'
-          value={searchTerm}
+          value={searchTerm}  
           onChange={handleSearch}
           placeholder='Search processes...'
           className='border border-gray-100 rounded-2xl mb-2 px-4 py-2 w-full'
@@ -244,17 +244,22 @@ const ProcessList = ({ onDiagramSelect, mainUserToken, employeeToken }) => {
               {diagrams.map((diagram) => (
                 <div
                   key={diagram._id}
-                  className='flex justify-between py-2 border-b-2 border-gray-200  '
+                  className='flex justify-between items-center py-2 border-b-2 border-gray-200'
                 >
-                  <div className='flex items-center text-left space-x-2'>
+                  {/* Left side: text */}
+                  <div className='flex items-center text-left space-x-2 overflow-hidden'>
                     <span
-                      className='truncate text-sm w-[120px]'
+                      className='truncate text-sm w-24 sm:w-32 md:w-40 lg:w-48 xl:w-64'
                       title={diagram.name}
                     >
                       {diagram.name}
                     </span>
                     {/* Display the version next to the diagram name */}
-                    <span className='text-gray-500 text-xs'>
+                    
+                  </div>
+                  {/* Right side: icons */}
+                  <div className='flex items-center space-x-2'>
+                  <span className='text-gray-500 text-xs hidden sm:inline'>
                       {diagram.version || 'V0'}
                     </span>
                     {diagram.isVerified ? (
