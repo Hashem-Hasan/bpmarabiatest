@@ -118,6 +118,12 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     ));
   };
 
+  const handleUndo = () => {
+    const commandStack = modelerRef.current.get('commandStack');
+    commandStack.undo();
+  };
+
+
   useEffect(() => {
     modelerRef.current = new BpmnModeler({
       container: '#bpmn-container',
@@ -145,8 +151,20 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
         modelerRef.current.destroy();
       }
     };
-  }, []);
 
+    // Keyboard shortcut for undo
+  const keyboard = modelerRef.current.get('keyboard');
+  keyboard.addListener((context) => {
+    const event = context.keyEvent;
+    if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+      event.preventDefault();
+      handleUndo();
+    }
+  });
+
+
+  }, []);
+  
   // Handle beforeunload to alert unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -252,6 +270,8 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       console.error('Error creating new BPMN diagram:', err);
     }
   };
+  
+  
 
   const saveDiagram = async () => {
     if (!diagramName.trim()) {
@@ -505,10 +525,14 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     <div className="flex w-full h-full">
       {/* Left column: ProcessList */}
       <div className=" w-1/6  flex-shrink-0">
-        <ProcessList
+      <ProcessList
           onDiagramSelect={setSelectedDiagram}
           mainUserToken={mainUserToken}
           employeeToken={employeeToken}
+          createNewDiagram={createNewDiagram} // Pass the function
+          clearSelection={clearSelection}     // Pass the function
+          selectedDiagram={selectedDiagram}   // Pass the state
+          isDiagramLoaded={isDiagramLoaded}   // Pass the state
         />
       </div>
 
@@ -575,29 +599,7 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
 
           {/* Right side: Buttons */}
           <div className="flex items-center space-x-2">
-            {(!selectedDiagram && !isDiagramLoaded) && (
-              <button
-                auto
-                flat
-                onClick={createNewDiagram}
-                disabled={loading}
-                className="text-center text-xl w-full text-[#14BAB6] py-2 px-4 rounded-md transition-all hover:bg-gray-200"
-              >
-                <FaPlus />
-              </button>
-            )}
 
-            {(selectedDiagram || isDiagramLoaded) && (
-              <button
-                auto
-                flat
-                onClick={clearSelection}
-                disabled={loading}
-                className="text-center text-xl w-full text-black py-2 px-4 rounded-md transition-all hover:bg-gray-200"
-              >
-                <FaTrashAlt />
-              </button>
-            )}
 
 <button
   onClick={saveDiagram}
@@ -634,7 +636,7 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
         <div className="w-full p-6 flex bg- flex-col h-[600px] ">
           {selectedElement ? (
             <>
-              <h3 className="text-2xl font-bold mb-3">Attachments</h3>
+              <h3 className="text-xl font-bold mb-3">Attachments</h3>
               <Button
                 auto
                 flat
@@ -685,7 +687,7 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
               ) : (
                 <p className="text-gray-500 mb-4">No attachments</p>
               )}
-              <h3 className="text-2xl border-t border-gray-300 pt-5 font-bold mb-4">
+              <h3 className="text-xl border-t border-gray-300 pt-5 font-bold mb-4">
                 Comments
               </h3>
               <div className="flex-1 overflow-y-auto mb-4">
