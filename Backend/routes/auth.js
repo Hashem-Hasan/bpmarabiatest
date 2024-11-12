@@ -7,32 +7,68 @@ const authenticateToken = require('../middleware/authenticateToken');
 const authenticateEmployeeToken = require('../middleware/authenticateEmployeeToken');
 const router = express.Router();
 const secretKey = 'your_secret_key_here';
+const tokenExpiryTime = '10h'; // 10 hours expiration
+
 
 // Unified Middleware for Admin and Employee Authentication
 const unifiedAuthMiddleware = (req, res, next) => {
   const authHeader = req.headers['authorization'];
+  console.log('Authorization Header:', authHeader);
+
   if (!authHeader) {
     console.log('No authorization header provided');
     return res.status(401).json({ valid: false, message: 'No token provided' });
   }
 
-  const token = authHeader.split(' ')[1];
+  const tokenParts = authHeader.split(' ');
+  if (tokenParts.length !== 2 || tokenParts[0] !== 'Bearer') {
+    console.log('Invalid authorization header format');
+    return res.status(401).json({ valid: false, message: 'Invalid authorization header format' });
+  }
+
+  const token = tokenParts[1];
+  console.log('Token received:', token);
+
   if (!token) {
-    console.log('Invalid token format');
+    console.log('No token found after Bearer');
     return res.status(401).json({ valid: false, message: 'Invalid token format' });
   }
 
-  // Try to verify using admin or employee middleware
+  // Try to verify the token
   jwt.verify(token, secretKey, async (err, decoded) => {
     if (err) {
       console.error('Error verifying token:', err.message);
+      if (err.name === 'TokenExpiredError') {
+        console.error('Token has expired at:', new Date(err.expiredAt).toISOString());
+      }
       return res.status(401).json({ valid: false, message: 'Invalid token' });
     }
+
+    // Token is valid
+    console.log('Token successfully verified');
+    // Log token expiry time
+    const expiryTimestamp = decoded.exp * 1000; // Convert to milliseconds
+    const expiryDate = new Date(expiryTimestamp);
+    console.log(`Token expires at: ${expiryDate.toISOString()}`);
 
     req.decoded = decoded;
     next();
   });
 };
+
+// Function to renew token and log expiry time
+function renewToken(payload, role) {
+  const token = jwt.sign(payload, secretKey, { expiresIn: tokenExpiryTime });
+
+  // Decode the token to get the expiry time
+  const decodedToken = jwt.decode(token);
+  const expiryTimestamp = decodedToken.exp * 1000; // Convert to milliseconds
+  const expiryDate = new Date(expiryTimestamp);
+
+  console.log(`Generated new token for ${role} with ID ${payload.userId || payload._id}. New Expiry Time: ${expiryDate.toISOString()}`);
+
+  return token;
+}
 
 // Validate Token Route
 router.get('/validate-token', unifiedAuthMiddleware, async (req, res) => {
@@ -42,30 +78,42 @@ router.get('/validate-token', unifiedAuthMiddleware, async (req, res) => {
   try {
     let newToken = null;
 
-    // Check for admin token
     if (req.decoded.userId) {
+      // Check for admin user
       console.log('Checking for admin user with userId:', req.decoded.userId);
       const user = await User.findById(req.decoded.userId);
       if (user) {
         console.log('Token belongs to admin:', user.email);
 
-        // Renew token expiry time
-        newToken = jwt.sign({ userId: user._id }, secretKey, { expiresIn: '1h' });
+        // Renew token and send back
+        newToken = renewToken({ userId: user._id }, 'admin');
+        console.log('New token generated for admin');
+
         return res.status(200).json({ valid: true, role: 'admin', token: newToken });
+      } else {
+        console.log('No admin user found with userId:', req.decoded.userId);
       }
+    } else {
+      console.log('No userId found in decoded token');
     }
 
-    // Check for employee token
     if (req.decoded._id) {
+      // Check for employee user
       console.log('Checking for employee with employeeId:', req.decoded._id);
       const employee = await Employee.findById(req.decoded._id);
       if (employee) {
         console.log('Token belongs to employee:', employee.email);
 
-        // Renew token expiry time
-        newToken = jwt.sign({ _id: employee._id }, secretKey, { expiresIn: '1h' });
+        // Renew token and send back
+        newToken = renewToken({ _id: employee._id }, 'employee');
+        console.log('New token generated for employee');
+
         return res.status(200).json({ valid: true, role: 'employee', token: newToken });
+      } else {
+        console.log('No employee found with _id:', req.decoded._id);
       }
+    } else {
+      console.log('No _id found in decoded token');
     }
 
     // If no user or employee found
@@ -77,6 +125,8 @@ router.get('/validate-token', unifiedAuthMiddleware, async (req, res) => {
     return res.status(500).json({ valid: false, message: 'Internal server error' });
   }
 });
+
+
 
 // Sign Up
 router.post('/signup', async (req, res) => {
