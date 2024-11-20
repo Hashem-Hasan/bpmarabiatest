@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import BpmnModeler from 'bpmn-js/lib/Modeler';
 import CustomPaletteProvider from './CustomPaletteProvider';
 import axios from 'axios';
-import { Spinner, Button, Input } from "@nextui-org/react";
+import { Spinner, Input, Button } from "@nextui-org/react";
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css';
@@ -13,10 +13,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProcessList from './ProcessList';
 import { Listbox } from '@headlessui/react';
 import { CheckIcon, SelectorIcon } from '@heroicons/react/solid';
-import Router from 'next/router'; // Import Next.js router
+import Router from 'next/router';
 
-const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
+const BpmnEditor = ({ diagramToEdit, onClear }) => {
   const modelerRef = useRef(null);
+  const processListRef = useRef(null); // Reference to ProcessList
   const [diagramName, setDiagramName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -30,7 +31,8 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
   const [newComment, setNewComment] = useState('');
   const [departments, setDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState('');
-  const [isDirty, setIsDirty] = useState(false); // State to track unsaved changes
+  const [isDirty, setIsDirty] = useState(false);
+  
 
   const [mainUserToken, setMainUserToken] = useState(null);
   const [employeeToken, setEmployeeToken] = useState(null);
@@ -44,27 +46,30 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
   }, []);
 
   useEffect(() => {
-    if (selectedDiagram || isDiagramLoaded) {
+    if (
+      (selectedDiagram || isDiagramLoaded) &&
+      (mainUserToken || employeeToken)
+    ) {
       fetchDepartments();
     }
-  }, [selectedDiagram, isDiagramLoaded]);
+  }, [selectedDiagram, isDiagramLoaded, mainUserToken, employeeToken]);
 
   const fetchDepartments = async () => {
-    const token = localStorage.getItem('token') || localStorage.getItem('employeeToken');
+    const token = mainUserToken || employeeToken;
+    if (!token) {
+      console.error('No token available for fetching departments');
+      return;
+    }
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_HOST}/api/department-structure`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_HOST}/api/department-structure`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setDepartments(response.data.departments);
-
-      // Set the selected department
-      if (selectedDiagram && selectedDiagram.department) {
-        setSelectedDepartment(selectedDiagram.department._id); // Updated line
-      } else {
-        setSelectedDepartment(''); // Default to empty if no department
-      }
     } catch (err) {
       console.error('Error fetching departments:', err);
     }
@@ -96,7 +101,9 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
           {({ selected, active }) => (
             <>
               <span
-                className={`block truncate ${selected ? 'font-medium' : 'font-normal'}`}
+                className={`block truncate ${
+                  selected ? 'font-medium' : 'font-normal'
+                }`}
               >
                 {'-'.repeat(level * 2) + department.name}
               </span>
@@ -123,7 +130,6 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     commandStack.undo();
   };
 
-
   useEffect(() => {
     modelerRef.current = new BpmnModeler({
       container: '#bpmn-container',
@@ -146,25 +152,23 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
 
     modelerRef.current.on('commandStack.changed', handleDiagramChange);
 
+    // Keyboard shortcut for undo
+    const keyboard = modelerRef.current.get('keyboard');
+    keyboard.addListener((context) => {
+      const event = context.keyEvent;
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+        event.preventDefault();
+        handleUndo();
+      }
+    });
+
     return () => {
       if (modelerRef.current) {
         modelerRef.current.destroy();
       }
     };
-
-    // Keyboard shortcut for undo
-  const keyboard = modelerRef.current.get('keyboard');
-  keyboard.addListener((context) => {
-    const event = context.keyEvent;
-    if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
-      event.preventDefault();
-      handleUndo();
-    }
-  });
-
-
   }, []);
-  
+
   // Handle beforeunload to alert unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -185,7 +189,9 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
   useEffect(() => {
     const handleRouteChange = (url) => {
       if (isDirty || selectedDiagram || isDiagramLoaded) {
-        const confirmLeave = confirm('You have unsaved changes or a selected diagram. Are you sure you want to leave?');
+        const confirmLeave = confirm(
+          'You have unsaved changes or a selected diagram. Are you sure you want to leave?'
+        );
         if (!confirmLeave) {
           Router.events.emit('routeChangeError');
           throw 'Route change aborted due to unsaved changes';
@@ -207,21 +213,19 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       importDiagram(selectedDiagram.xml);
       fetchCompanyDetails(selectedDiagram.creator);
 
-      // Set selected department or default
-      if (selectedDiagram.department) {
-        setSelectedDepartment(selectedDiagram.department._id); // Updated line
-      } else {
-        setSelectedDepartment(''); // Default to empty if no department
+      // Set selected department if available
+      if (selectedDiagram.department && selectedDiagram.department._id) {
+        setSelectedDepartment(selectedDiagram.department._id);
       }
-      setIsDirty(true); // Diagram selected, mark as unsaved
-    } else {
-      setSelectedDepartment(''); // Reset if no diagram selected
+      setIsDirty(false); // Diagram loaded, no unsaved changes
     }
   }, [selectedDiagram]);
 
   const fetchCompanyDetails = async (creatorId) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_HOST}/api/user/${creatorId}`);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_HOST}/api/user/${creatorId}`
+      );
       const { companyName, phoneNumber } = response.data;
       setCompanyName(companyName);
       setPhoneNumber(phoneNumber);
@@ -235,7 +239,6 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       await modelerRef.current.importXML(xml);
       modelerRef.current.get('canvas').zoom('fit-viewport');
       setIsDiagramLoaded(true);
-      // Do not reset isDirty here to keep tracking unsaved changes
     } catch (err) {
       console.error('Error importing BPMN diagram:', err);
     }
@@ -265,13 +268,12 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       modelerRef.current.get('canvas').zoom('fit-viewport');
       setIsDiagramLoaded(true);
       setIsDirty(true); // New diagram created, mark as unsaved
-      setSelectedDepartment(''); // Reset department selector
+      setDiagramId(null); // Reset diagramId
+      setDiagramName(''); // Reset diagram name
     } catch (err) {
       console.error('Error creating new BPMN diagram:', err);
     }
   };
-  
-  
 
   const saveDiagram = async () => {
     if (!diagramName.trim()) {
@@ -292,6 +294,8 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       }
       setLoading(true);
 
+      const token = mainUserToken || employeeToken;
+
       const payload = {
         id: diagramId,
         name: diagramName,
@@ -301,18 +305,65 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
 
       console.log('Submitting payload:', payload);
 
-      if (onSave) {
-        const success = await onSave(payload);
-        if (success) {
-          setIsDirty(false); // Diagram saved, no unsaved changes
-          // Do not clear the diagram after saving
+      let response;
+      if (diagramId) {
+        // Update existing diagram
+        response = await axios.put(
+          `${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/${diagramId}`,
+          { name: diagramName, xml, department: selectedDepartment },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      } else {
+        // Create new diagram
+        response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes`,
+          { name: diagramName, xml, department: selectedDepartment },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        // If new diagram, set the diagramId
+        setDiagramId(response.data._id);
+      }
+
+      alert('Diagram saved successfully!');
+      setIsDirty(false);
+
+       // Fetch the updated diagram data
+       const updatedDiagramResponse = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_HOST}/api/bpmnroutes/${response.data._id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
+      );
+      const updatedDiagram = updatedDiagramResponse.data;
+
+      // Update the selected diagram with the latest data
+      setSelectedDiagram(updatedDiagram);
+
+      // Refresh diagrams in ProcessList
+      if (
+        processListRef.current &&
+        processListRef.current.refreshDiagrams
+      ) {
+        processListRef.current.refreshDiagrams();
       }
     } catch (err) {
       console.error('Error saving BPMN diagram:', err);
 
       if (err.response && err.response.status === 403) {
-        alert(err.response.data.message || 'You do not have permission to perform this action.');
+        alert(
+          err.response.data.message ||
+            'You do not have permission to perform this action.'
+        );
       } else {
         alert('An error occurred while saving the diagram. Please try again.');
       }
@@ -330,9 +381,8 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     setSelectedElement(null);
     setAttachments([]);
     setComments([]);
-    setSelectedDepartment('');
     setSelectedDiagram(null);
-    setIsDirty(false); // Clearing selection, no unsaved changes
+    setIsDirty(false);
 
     if (modelerRef.current) {
       modelerRef.current.destroy();
@@ -351,7 +401,6 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
 
     modelerRef.current.on('element.click', handleElementClick);
 
-    // Listen for changes to the diagram to track unsaved changes
     const handleDiagramChange = () => {
       setIsDirty(true);
     };
@@ -393,35 +442,50 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
     const newAttachments = [];
     setUploading(true);
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      let uploadUrl = '';
+    // Process all files concurrently
+    const uploadPromises = Array.from(files).map(async (file) => {
+        let uploadUrl = '';
 
-      if (file.type.startsWith('image/')) {
-        uploadUrl = await uploadToImgBB(file);
-      } else if (file.type.startsWith('video/')) {
-        uploadUrl = await uploadToBackend(file);
-      }
+        if (file.type.startsWith('image/')) {
+            uploadUrl = await uploadToImgBB(file);
+        } else if (file.type.startsWith('video/')) {
+            uploadUrl = await uploadToBackend(file);
+        }
 
-      if (uploadUrl) {
-        newAttachments.push({
-          name: file.name,
-          url: uploadUrl,
-          type: file.type,
-        });
-      }
+        if (uploadUrl) {
+            return {
+                name: file.name,
+                url: uploadUrl,
+                type: file.type,
+            };
+        }
 
-      if (i === files.length - 1) {
-        updateElementAttachments(newAttachments);
+        return null;
+    });
+
+    try {
+        // Wait for all uploads to finish
+        const uploadedFiles = await Promise.all(uploadPromises);
+
+        // Filter out any failed uploads
+        const successfulUploads = uploadedFiles.filter(Boolean);
+
+        // Update attachments with successful uploads
+        if (successfulUploads.length > 0) {
+            updateElementAttachments(successfulUploads);
+        }
+    } catch (err) {
+        console.error('Error uploading files:', err);
+    } finally {
         setUploading(false);
-      }
     }
-  };
+};
+
 
   const uploadToImgBB = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
-    formData.append('key', 'YOUR_IMGBB_API_KEY'); // Replace with your ImgBB API key
+    formData.append('key', '5990a44a9ee7af4103ba3c8fc39c2337'); // Replace with your ImgBB API key
 
     try {
       const response = await axios.post('https://api.imgbb.com/1/upload', formData);
@@ -526,13 +590,14 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       {/* Left column: ProcessList */}
       <div className=" w-1/6  flex-shrink-0">
       <ProcessList
+          ref={processListRef} // Attach ref to ProcessList
           onDiagramSelect={setSelectedDiagram}
           mainUserToken={mainUserToken}
           employeeToken={employeeToken}
-          createNewDiagram={createNewDiagram} // Pass the function
-          clearSelection={clearSelection}     // Pass the function
-          selectedDiagram={selectedDiagram}   // Pass the state
-          isDiagramLoaded={isDiagramLoaded}   // Pass the state
+          createNewDiagram={createNewDiagram}
+          clearSelection={clearSelection}
+          selectedDiagram={selectedDiagram}
+          isDiagramLoaded={isDiagramLoaded}
         />
       </div>
 
@@ -632,122 +697,132 @@ const BpmnEditor = ({ onSave, diagramToEdit, onClear }) => {
       </div>
 
       {/* Right column: Attachments and comments */}
-      <div className="flex flex-col border-l-1 border-gray-300 h-full items-center w-1/6 flex-shrink-0">
-        <div className="w-full p-6 flex bg- flex-col h-[600px] ">
-          {selectedElement ? (
-            <>
-              <h3 className="text-xl font-bold mb-3">Attachments</h3>
-              <Button
-                auto
-                flat
-                as="label"
-                htmlFor="file-upload"
-                className="mb-4 w-full"
+<div className="flex flex-col border-l-1 border-gray-300 h-full items-center w-1/6 flex-shrink-0">
+  <div className="w-full p-6 flex flex-col h-[600px]">
+    {selectedElement ? (
+      <>
+        <h3 className="text-xl font-semibold mb-3">Attachments</h3>
+        <Button
+          auto
+          flat
+          as="label"
+          htmlFor="file-upload"
+          className="mb-4 w-full"
+        >
+          Upload Files
+          <input
+            type="file"
+            id="file-upload"
+            multiple
+            onChange={handleFileUpload}
+            style={{ display: 'none' }}
+          />
+        </Button>
+        {uploading && (
+          <div className="flex justify-center items-center mt-4">
+            <Spinner size="lg" color="primary" />
+          </div>
+        )}
+        {attachments.length > 0 ? (
+          <ul className="mb-4">
+            {attachments.map((attachment, index) => (
+              <li
+                key={index}
+                className="flex items-center justify-between py-2 border-b border-gray-200"
               >
-                Upload Files
-                <input
-                  type="file"
-                  id="file-upload"
-                  multiple
-                  onChange={handleFileUpload}
-                  style={{ display: 'none' }}
-                />
-              </Button>
-              {uploading && (
-                <div className="flex justify-center items-center mt-4">
-                  <Spinner size="lg" color="primary" />
-                </div>
-              )}
-              {attachments.length > 0 ? (
-                <ul className="mb-4">
-                  {attachments.map((attachment, index) => (
-                    <li
-                      key={index}
-                      className="flex items-center justify-between py-2 border-b border-gray-200"
-                    >
-                      <a
-                        href={attachment.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {attachment.name}
-                      </a>
+                <a
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 w-1/2 overflow-hidden hover:underline"
+                >
+                  {attachment.name}
+                </a>
+                <Button
+                  auto
+                  flat
+                  color="error"
+                  onClick={() => handleAttachmentDelete(index)}
+                >
+                  Delete
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500 mb-4">No attachments</p>
+        )}
+        <h3 className="text-xl border-t border-gray-300 pt-5 font-semibold mb-4">
+          Comments
+        </h3>
+        <div className="flex-1 overflow-y-auto mb-4">
+          {comments.length > 0 ? (
+            <AnimatePresence>
+              {comments.map((comment, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mb-3"
+                >
+                  <div className="border rounded-md shadow-sm">
+                    <div className="flex justify-between items-center p-3">
+                      <span className="break-words overflow-hidden">
+                        {comment}
+                      </span>
                       <Button
                         auto
                         flat
                         color="error"
-                        onClick={() => handleAttachmentDelete(index)}
+                        onClick={() => handleCommentDelete(index)}
                       >
                         Delete
                       </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-500 mb-4">No attachments</p>
-              )}
-              <h3 className="text-xl border-t border-gray-300 pt-5 font-bold mb-4">
-                Comments
-              </h3>
-              <div className="flex-1 overflow-y-auto mb-4">
-                {comments.length > 0 ? (
-                  <AnimatePresence>
-                    {comments.map((comment, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="mb-3"
-                      >
-                        <div className="border rounded-md shadow-sm">
-                          <div className="flex justify-between items-center p-3">
-                            <span className="break-words overflow-hidden">
-                              {comment}
-                            </span>
-                            <Button
-                              auto
-                              flat
-                              color="error"
-                              onClick={() => handleCommentDelete(index)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                ) : (
-                  <p className="text-gray-500">No comments yet</p>
-                )}
-              </div>
-              <div className="flex items-center">
-                <Input
-                  clearable
-                  underlined
-                  fullWidth
-                  placeholder="Enter comment"
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddComment();
-                    }
-                  }}
-                />
-              </div>
-            </>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           ) : (
-            <div className="text-center text-gray-500">
-              <p className="text-xl">No element selected</p>
-            </div>
+            <p className="text-gray-500">No comments yet</p>
           )}
         </div>
+        <div className="flex items-center space-x-2">
+          <Input
+            clearable
+            underlined
+            fullWidth
+            placeholder="Enter comment"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAddComment();
+              }
+            }}
+          />
+          <button
+            auto
+            flat
+            onClick={handleAddComment}
+            className='bg-[#14BAB6] px-3 py-3 rounded-lg text-white'
+          >
+            <FaSave />
+          </button>
+        </div>
+      </>
+    ) : (
+      <div className="text-center text-gray-500">
+        <p className="text-xl">No element selected</p>
       </div>
-    </div>
+    )}
+  </div>
+</div>
+
+      </div>
+    
   );
 };
 

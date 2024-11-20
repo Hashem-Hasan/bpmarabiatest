@@ -1,7 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+// ProcessList.js
+
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { Spinner } from "@nextui-org/react";
+import { Spinner } from '@nextui-org/react';
 import Modal from './Modal';
 import {
   FaEdit,
@@ -11,19 +19,20 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaEye,
-  FaPlus, // Import FaPlus
+  FaPlus,
 } from 'react-icons/fa';
-import { AiOutlineClear } from "react-icons/ai";
+import { AiOutlineClear } from 'react-icons/ai';
 
-
-const ProcessList = ({ 
-  onDiagramSelect,
-  mainUserToken,
-  employeeToken,
-  createNewDiagram,    // Accept the function
-  clearSelection,       // Accept the function
-  selectedDiagram,      // Accept the state
-  isDiagramLoaded        }) => {
+const ProcessList = forwardRef((props, ref) => {
+  const {
+    onDiagramSelect,
+    mainUserToken,
+    employeeToken,
+    createNewDiagram,
+    clearSelection,
+    selectedDiagram,
+    isDiagramLoaded,
+  } = props;
   const [diagrams, setDiagrams] = useState([]);
   const [filteredDiagrams, setFilteredDiagrams] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -38,6 +47,14 @@ const ProcessList = ({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [diagramToDelete, setDiagramToDelete] = useState(null);
 
+  // Expose refreshDiagrams method to parent components
+  useImperativeHandle(ref, () => ({
+    refreshDiagrams: () => {
+      setPage(1);
+      fetchDiagrams(1, true); // Reset diagrams when refreshing
+    },
+  }));
+
   useEffect(() => {
     if (mainUserToken || employeeToken) {
       fetchDiagrams(page);
@@ -45,7 +62,7 @@ const ProcessList = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, mainUserToken, employeeToken]);
 
-  const fetchDiagrams = async (page) => {
+  const fetchDiagrams = async (page, reset = false) => {
     if (isFetching.current) return;
     isFetching.current = true;
     setFetchingDiagrams(true);
@@ -64,16 +81,22 @@ const ProcessList = ({
           Authorization: `Bearer ${token}`,
         },
       });
+
       if (response.data.length > 0) {
-        const newDiagrams = response.data.filter(
-          (diagram) =>
-            !diagrams.some((existingDiagram) => existingDiagram._id === diagram._id)
-        );
-        const updatedDiagrams = [...diagrams, ...newDiagrams];
+        let updatedDiagrams;
+        if (reset) {
+          updatedDiagrams = response.data;
+        } else {
+          const newDiagrams = response.data.filter(
+            (diagram) =>
+              !diagrams.some((existingDiagram) => existingDiagram._id === diagram._id)
+          );
+          updatedDiagrams = [...diagrams, ...newDiagrams];
+        }
         setDiagrams(updatedDiagrams);
         updateFilteredDiagrams(updatedDiagrams, searchTerm);
 
-        if (newDiagrams.length < 5) {
+        if (response.data.length < 5) {
           setHasMore(false);
         }
       } else {
@@ -142,7 +165,7 @@ const ProcessList = ({
       if (updatedDiagrams.length === 0) {
         setHasMore(true);
         setPage(1);
-        fetchDiagrams(1);
+        fetchDiagrams(1, true);
       }
     } catch (err) {
       console.error('Error deleting diagram:', err);
@@ -349,6 +372,6 @@ const ProcessList = ({
       </Modal>
     </div>
   );
-};
+});
 
 export default ProcessList;
