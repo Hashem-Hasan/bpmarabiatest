@@ -374,4 +374,6 @@ const ProcessList = forwardRef((props, ref) => {
   );
 });
 
+ProcessList.displayName = 'ProcessList'; // Add this line to set the display name
+
 export default ProcessList;
