@@ -1,3 +1,5 @@
+// routes/employees.js
+
 const express = require('express');
 const Employee = require('../models/Employee');
 const { Role, CompanyStructure } = require('../models/CompanyStructure');
@@ -20,7 +22,7 @@ router.post('/', authenticateToken, async (req, res) => {
       isAdmin,
       ownedProcesses,
       company: req.user.userId, // Link employee to the company of the logged-in user
-      role
+      role,
     });
 
     await newEmployee.save();
@@ -114,12 +116,86 @@ router.get('/roles', authenticateToken, async (req, res) => {
       await populateSubRoles(role);
     }
 
-    console.log("Fetched Roles:", JSON.stringify(companyStructure.roles, null, 2));
+    console.log('Fetched Roles:', JSON.stringify(companyStructure.roles, null, 2));
     res.status(200).send(companyStructure.roles);
   } catch (error) {
     console.error('Error fetching roles:', error);
     res.status(500).send({ message: 'Error fetching roles', error });
   }
 });
+
+router.post('/import', authenticateToken, async (req, res) => {
+  const { employees } = req.body;
+
+  if (!employees || !Array.isArray(employees)) {
+    return res.status(400).json({ message: 'Invalid data format. Expected an array of employees.' });
+  }
+
+  try {
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({ message: 'Unauthorized: User ID not found.' });
+    }
+
+    // Prepare to collect errors and valid employee documents
+    const employeeDocs = [];
+    const errors = [];
+    const existingEmails = await Employee.find({ email: { $in: employees.map(emp => emp.email) } });
+
+    // Map existing emails to avoid duplicate entries
+    const existingEmailMap = new Map();
+    existingEmails.forEach(emp => {
+      existingEmailMap.set(emp.email, true);
+    });
+
+    for (const [index, emp] of employees.entries()) {
+      // Validate required fields
+      if (!emp.fullName || !emp.email || !emp.password || !emp.phoneNumber || !emp.hrId || !emp.role) {
+        errors.push(`Row ${index + 1}: Missing required fields.`);
+        continue;
+      }
+
+      // Check for duplicate email in the current request
+      if (existingEmailMap.has(emp.email)) {
+        errors.push(`Row ${index + 1}: Email "${emp.email}" is already registered.`);
+        continue;
+      }
+
+      // Create new employee document
+      try {
+        const newEmployee = new Employee({
+          fullName: emp.fullName,
+          email: emp.email,
+          password: emp.password, // Password hashing is handled in the schema pre-save hook
+          phoneNumber: emp.phoneNumber,
+          hrId: emp.hrId,
+          role: emp.role, // Assume role ID is provided and valid
+          company: req.user.userId,
+        });
+        employeeDocs.push(newEmployee);
+      } catch (error) {
+        errors.push(`Row ${index + 1}: Error creating employee document - ${error.message}`);
+      }
+    }
+
+    // Insert valid employees into the database
+    if (employeeDocs.length > 0) {
+      await Employee.insertMany(employeeDocs);
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json({
+        message: 'Some employees could not be imported due to errors.',
+        errors,
+      });
+    }
+
+    res.status(201).json({ message: 'All employees imported successfully.' });
+  } catch (error) {
+    console.error('Error importing employees:', error);
+    res.status(500).json({ message: 'Error importing employees', error: error.message });
+  }
+});
+
+
 
 module.exports = router;

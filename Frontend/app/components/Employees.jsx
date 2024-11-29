@@ -1,16 +1,19 @@
+// EmployeeManagement.js
+
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import Modal from './Modal'; // Ensure this path is correct
+import Modal from "./Modal"; // Ensure this path is correct
 import { FaEdit } from "react-icons/fa";
 import { Spinner } from "@nextui-org/react";
+import * as XLSX from "xlsx";
 
 // Helper function to flatten the roles with indentation for subroles
-function flattenRoles(roles, prefix = '') {
+function flattenRoles(roles, prefix = "") {
   return roles.reduce((acc, role) => {
     acc.push({ id: role._id, name: prefix + role.name });
     if (role.subRoles && role.subRoles.length) {
-      const subRoles = flattenRoles(role.subRoles, prefix + '--');
+      const subRoles = flattenRoles(role.subRoles, prefix + "--");
       acc = acc.concat(subRoles);
     }
     return acc;
@@ -35,6 +38,9 @@ const EmployeeManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  // File input reference
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -177,6 +183,7 @@ const EmployeeManagement = () => {
       setEditingEmployee(null);
     } catch (error) {
       console.error("Error submitting form:", error);
+      alert(`Error: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoadingAction(false);
     }
@@ -184,7 +191,104 @@ const EmployeeManagement = () => {
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
-    fetchEmployees(); // Fetch the data from the DB while searching
+    // Optionally, implement server-side search if needed
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      await importEmployeesFromExcel(file);
+    }
+  };
+
+  const importEmployeesFromExcel = async (file) => {
+    setLoadingAction(true);
+    try {
+      // Read Excel file
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+      // Proceed with processing jsonData
+      await processImportedData(jsonData);
+    } catch (error) {
+      console.error('Error importing employees:', error);
+      alert(`Error importing employees: ${error.response?.data?.message || error.message}`);
+      setLoadingAction(false);
+    }
+  };
+
+  const processImportedData = async (jsonData) => {
+    // Fetch existing roles
+    const token = localStorage.getItem("token");
+    const rolesResponse = await axios.get(
+      `${process.env.NEXT_PUBLIC_API_HOST}/api/employees/roles`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    const flatRoles = flattenRoles(rolesResponse.data);
+
+    // Map roles by name for quick lookup
+    const rolesMap = {};
+    flatRoles.forEach((role) => {
+      const roleNameKey = role.name.replace(/^-*/, '').trim();
+      rolesMap[roleNameKey] = role.id;
+    });
+
+    // Prepare employees data
+    const employeesData = [];
+    const errors = [];
+
+    jsonData.forEach((item, index) => {
+      const roleName = item.role ? item.role.trim() : '';
+      const roleId = rolesMap[roleName];
+      if (!roleId) {
+        errors.push(`Row ${index + 2}: Role "${roleName}" not found.`);
+        return;
+      }
+      // Check for missing required fields
+      if (!item.fullName || !item.email || !item.password || !item.phoneNumber || !item.hrId) {
+        errors.push(`Row ${index + 2}: Missing required fields.`);
+        return;
+      }
+      employeesData.push({
+        fullName: item.fullName,
+        email: item.email,
+        password: item.password,
+        phoneNumber: item.phoneNumber,
+        hrId: item.hrId,
+        role: roleId, // Use the role ID
+      });
+    });
+
+    if (errors.length > 0) {
+      alert(`Errors in file:\n${errors.join('\n')}`);
+      setLoadingAction(false);
+      return;
+    }
+
+    // Send data to backend
+    await axios.post(
+      `${process.env.NEXT_PUBLIC_API_HOST}/api/employees/import`,
+      { employees: employeesData },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    alert('Employees imported successfully.');
+    fetchEmployees(); // Refresh the employees list
+    setLoadingAction(false);
   };
 
   const filteredEmployees = employees.filter((employee) =>
@@ -206,12 +310,21 @@ const EmployeeManagement = () => {
     <div className="employee-management p-8 text-black bg-white space-y-4 flex-grow flex flex-col">
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-3xl font-bold text-black">Employee Management</h1>
-        <button
-          className="bg-[#14BAB6] text-white py-2 px-4 rounded"
-          onClick={handleAdd}
-        >
-          Add Employee
-        </button>
+        <div>
+          <button
+            className="bg-[#14BAB6] text-white py-2 px-4 rounded mr-2"
+            onClick={handleAdd}
+          >
+            Add Employee
+          </button>
+          <button
+            className="bg-green-500 text-white py-2 px-4 rounded"
+            onClick={handleImportClick}
+            disabled={loadingAction}
+          >
+            {loadingAction ? <Spinner size="sm" color="white" /> : "Import"}
+          </button>
+        </div>
       </div>
       <div className="mb-2">
         <input
@@ -222,7 +335,8 @@ const EmployeeManagement = () => {
           className="border border-gray-300 p-2 rounded w-full text-black"
         />
       </div>
-      <div className="overflow-auto max-h-[60vh]"> {/* Table should be scrollable */}
+      <div className="overflow-auto max-h-[60vh]">
+        {/* Table should be scrollable */}
         <table className="min-w-full bg-white relative">
           <thead className="sticky top-0 bg-[#14BAB6] text-white">
             <tr>
@@ -257,6 +371,15 @@ const EmployeeManagement = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        accept=".xlsx, .xls"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        onChange={handleFileUpload}
+      />
 
       {/* Modal for Add/Edit Employee */}
       {isModalOpen && (
@@ -298,7 +421,9 @@ const EmployeeManagement = () => {
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 className="border border-gray-300 p-2 rounded w-full text-black"
-                placeholder={editingEmployee ? "Leave blank to keep current password" : ""}
+                placeholder={
+                  editingEmployee ? "Leave blank to keep current password" : ""
+                }
                 required={!editingEmployee}
               />
             </div>
@@ -333,12 +458,12 @@ const EmployeeManagement = () => {
                 <option value="">Select a role</option>
                 {roles.map((role) => (
                   <option key={role.id} value={role.id}>
-                    {role.name}
+                    {role.name.replace(/^-*/, "").trim()}
                   </option>
                 ))}
               </select>
             </div>
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-end space-x-2 mt-4">
               <button
                 type="button"
                 className="bg-gray-500 text-white py-2 px-4 rounded"
@@ -362,6 +487,7 @@ const EmployeeManagement = () => {
               <button
                 type="submit"
                 className="bg-[#14BAB6] text-white py-2 px-4 rounded"
+                disabled={loadingAction}
               >
                 {loadingAction ? (
                   <Spinner size="sm" color="white" />
@@ -401,6 +527,7 @@ const EmployeeManagement = () => {
             <button
               className="bg-red-500 text-white py-2 px-4 rounded"
               onClick={handleDelete}
+              disabled={loadingAction}
             >
               {loadingAction ? <Spinner size="sm" color="white" /> : "Confirm"}
             </button>
