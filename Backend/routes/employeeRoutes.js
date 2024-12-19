@@ -1,6 +1,6 @@
 const express = require('express');
 const Employee = require('../models/Employee');
-const BpmnModel = require('../models/BpmnModel'); // Ensure this line is included
+const BpmnModel = require('../models/BpmnModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const authenticateEmployeeToken = require('../middleware/authenticateEmployeeToken');
@@ -50,8 +50,8 @@ router.post('/login', async (req, res) => {
     // Generate token
     const token = jwt.sign(
       { _id: employee._id, email: employee.email, fullName: employee.fullName },
-      process.env.SECRET_KEY || 'your_secret_key_here', // Correctly reference the secret key
-      { expiresIn: '1h' } // Set expiration time to 1 hour
+      secretKey,
+      { expiresIn: '1h' }
     );
     
     console.log('Generated Token:', token); // Debugging token generation
@@ -62,13 +62,12 @@ router.post('/login', async (req, res) => {
   }
 });
 
-
-
-
 // Get employee info
 router.get('/me', authenticateEmployeeToken, async (req, res) => {
   try {
-    const employee = await Employee.findById(req.employee._id).select('-password');
+    const employee = await Employee.findById(req.employee._id)
+      .select('-password')
+      .populate('company'); // Populate the company field
     if (!employee) {
       return res.status(404).send({ message: 'Employee not found' });
     }
@@ -118,7 +117,6 @@ router.put('/update', authenticateEmployeeToken, async (req, res) => {
     res.status(500).send({ message: 'Error updating employee info', error });
   }
 });
-
 
 // Get employee tasks based on role and fetch department
 router.get('/tasks', authenticateEmployeeToken, async (req, res) => {

@@ -86,15 +86,34 @@ const AccountSettings = () => {
     return <div className="text-center p-8">User info not found.</div>;
   }
 
+  // Determine the logo URL based on user type
+  const logoUrl = isEmployee
+    ? userInfo.company?.logo // Assuming company is populated for employees
+    : userInfo.logo; // User's own logo for main users
+
   return (
     <div className="p-8 bg-white flex flex-col items-center">
       <Card className="w-full max-w-5xl shadow-lg">
-      <div className="h-[75px] w-full" style={{ backgroundImage: `url('https://s3-alpha-sig.figma.com/img/452d/d41e/6eea8d05642679295aa17dfe2a264a07?Expires=1729468800&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4&Signature=cvCUH3M0aflL22K~aSY2hZZD8ILHNOrxFScnRx0NBEG5IIgKVg3Mhzou78YJY98l28QJBZSbEx1BReF1CHJwh12u45GuCF~FunC2~Ms7~cZiYjlMtdrjRhgb7HZp1B3R7NLzmxOxpCjizkL-4G3fTPsvvv-EuMD87vpN~0dKM2LZEiuhJFWCXa5Kk5YdMajcW82LsHbgWZSlMkVPFrDcK7eEN0KPLxbR6l1g7KLnjYD1RjEcI-v4Eja1JSyOCZj0a82Yt44~ShXhuvwV-TE-Sx6gBlcgUPtRlcEyIdm-uEacozoNdLWfuFKPSEIHX4nCig7a3c7xrx-P8CGMpMWU8Q__')`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-</div>
+        {/* Logo and User Info Section */}
         <CardHeader className="flex justify-between items-center px-6">
-          <div>
+          {/* Display Logo */}
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt={isEmployee ? `${userInfo.company.companyName} Logo` : 'User Logo'}
+              className="h-16 w-16 object-contain rounded-md"
+              onError={(e) => {
+                e.target.onerror = null; // Prevent infinite loop if fallback also fails
+                e.target.src = "/fallback-logo.png"; // Path to a fallback logo image
+              }}
+              loading="lazy" // Optional: Improves performance by lazy loading the image
+            />
+          )}
+
+          {/* User Info and Edit Button */}
+          <div className="flex-1 ml-4">
             <h2 className="text-3xl font-bold text-[#14BAB6] mb-2">{userInfo.fullName}</h2>
-            <p className="text-gray-500">{isEmployee ? userInfo.email : userInfo.businessMail}</p> {/* Display businessMail for main user */}
+            <p className="text-gray-500">{isEmployee ? userInfo.email : userInfo.businessMail}</p>
           </div>
           <Button
             color={editing ? "success" : "primary"}

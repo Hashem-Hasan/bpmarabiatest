@@ -1,3 +1,4 @@
+// pages/account-settings.js
 "use client";
 import React, { useState, useEffect } from "react";
 import {
@@ -17,7 +18,7 @@ import {
   Spinner,
 } from "@nextui-org/react";
 import { usePathname, useRouter } from "next/navigation";
-import axios from 'axios';
+import axios from "axios";
 import Image from "next/image";
 
 export default function App() {
@@ -25,30 +26,25 @@ export default function App() {
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isMainUser, setIsMainUser] = useState(false);
+  const [userData, setUserData] = useState(null);
+
   const pathname = usePathname();
   const router = useRouter();
-
-  const isActive = (path) => pathname === path;
-
-  const menuItems = [
-    // Add static menu items here if any
-    // Example:
-    // { name: "Home", path: "/" },
-  ];
+  const menuItems = [];
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const employeeToken = localStorage.getItem("employeeToken");
 
     if (token) {
-      fetchUserInfo(token);
       setIsMainUser(true);
+      fetchMainUserData(token);
     } else if (employeeToken) {
-      fetchEmployeeInfo(employeeToken);
       setIsMainUser(false);
+      fetchEmployeeData(employeeToken);
     } else {
       setLoading(false);
-      setIsMainUser(false); // Add this line
+      setIsMainUser(false);
     }
 
     const intervalId = setInterval(() => {
@@ -64,40 +60,40 @@ export default function App() {
       const employeeToken = localStorage.getItem("employeeToken");
 
       if (token) {
-        fetchUserInfo(token);
         setIsMainUser(true);
+        fetchMainUserData(token);
       } else if (employeeToken) {
-        fetchEmployeeInfo(employeeToken);
         setIsMainUser(false);
+        fetchEmployeeData(employeeToken);
       } else {
         setLoggedInUser(null);
-        setIsMainUser(false); // Add this line
+        setIsMainUser(false);
       }
     };
-
-    // This will re-run the effect when pathname changes
     handleRouteChange();
   }, [router, pathname]);
 
-  const fetchUserInfo = async (token) => {
+  const fetchMainUserData = async (token) => {
     try {
       const decoded = parseJwt(token);
       if (decoded && decoded.exp * 1000 > Date.now()) {
-        if (decoded.fullName) {
-          setLoggedInUser(decoded.fullName);
-        }
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_HOST}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setLoggedInUser(response.data.fullName);
+        setUserData(response.data);
       } else {
         logout("token");
       }
     } catch (error) {
-      console.error("Error fetching user info:", error);
+      console.error("Error fetching main user info:", error);
       logout("token");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchEmployeeInfo = async (token) => {
+  const fetchEmployeeData = async (token) => {
     try {
       const decoded = parseJwt(token);
       if (decoded && decoded.exp * 1000 > Date.now()) {
@@ -105,6 +101,7 @@ export default function App() {
           headers: { Authorization: `Bearer ${token}` },
         });
         setLoggedInUser(response.data.fullName);
+        setUserData(response.data);
       } else {
         logout("employeeToken");
       }
@@ -141,18 +138,23 @@ export default function App() {
       localStorage.removeItem("employeeToken");
     }
     setLoggedInUser(null);
-    setIsMainUser(false); // Add this line
+    setIsMainUser(false);
+    setUserData(null);
     router.push("/");
   };
 
-  // Function to determine if the user is an admin
   const isAdmin = isMainUser;
-
-  // Function to determine if the user is an employee
   const isEmployee = !isMainUser && loggedInUser;
 
+  const isActive = (path) => pathname === path;
+
+  const companyLogoUrl = (() => {
+    if (!userData) return null;
+    return isMainUser ? userData.logo : userData.company?.logo;
+  })();
+
   return (
-    <Navbar onMenuOpenChange={setIsMenuOpen} className="bg-white fixed shadow-sm text-black">
+    <Navbar onMenuOpenChange={setIsMenuOpen} className="bg-white overflow-hidden fixed shadow-sm text-black w-full z-50">
       <NavbarContent>
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
@@ -160,7 +162,7 @@ export default function App() {
         />
         <NavbarBrand color="foreground" href="/">
           <Link href="https://bpmarabia.com/">
-            <Image src="/LLOGO.png" alt="BPMN Arabia Logo" width={170} height={100} />
+            <Image src="/LLOGO.png" alt="BPM Arabia Logo" width={170} height={100} />
           </Link>
         </NavbarBrand>
       </NavbarContent>
@@ -224,46 +226,63 @@ export default function App() {
       <NavbarContent justify="end" className="flex items-center">
         {loading ? (
           <Spinner size="lg" color="primary" />
-        ) : loggedInUser ? (
-          <Dropdown>
-            <DropdownTrigger>
-              <Button auto flat color="primary" className="text-white">
-                Hello, {loggedInUser}
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu>
-              <DropdownItem key="settings">
-                <Link href="/account-settings" className="text-black">
-                  Account Settings
-                </Link>
-              </DropdownItem>
-              <DropdownItem
-                key="logout"
-                color="danger"
-                onClick={() => logout(isAdmin ? "token" : "employeeToken")}
-              >
-                <h1 className="text-red-400 text-md font-bold">Logout</h1>
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
         ) : (
           <>
-            <NavbarItem>
-              <Link href="/" className={`text-primary ${isActive("/") ? "font-bold text-[#14BAB6]" : ""}`}>
-                Admin Login
-              </Link>
-            </NavbarItem>
-            <NavbarItem>
-              <Button
-                as={Link}
-                color="primary"
-                href="/ELogin"
-                variant="flat"
-                className={`text-primary ${isActive("/ELogin") ? "font-bold text-[#14BAB6]" : ""}`}
-              >
-                Employees Login
-              </Button>
-            </NavbarItem>
+            {companyLogoUrl && (
+              <Image
+                src={companyLogoUrl}
+                alt="Company Logo"
+                width={80}
+                height={40}
+                className="object-contain mr-4"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/fallback-logo.png";
+                }}
+              />
+            )}
+            {loggedInUser ? (
+              <Dropdown>
+                <DropdownTrigger>
+                  <Button auto flat color="primary" className="text-white">
+                    Hello, {loggedInUser}
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu>
+                  <DropdownItem key="settings">
+                    <Link href="/account-settings" className="text-black">
+                      Account Settings
+                    </Link>
+                  </DropdownItem>
+                  <DropdownItem
+                    key="logout"
+                    color="danger"
+                    onClick={() => logout(isAdmin ? "token" : "employeeToken")}
+                  >
+                    <h1 className="text-red-400 text-md font-bold">Logout</h1>
+                  </DropdownItem>
+                </DropdownMenu>
+              </Dropdown>
+            ) : (
+              <>
+                <NavbarItem>
+                  <Link href="/" className={`text-primary ${isActive("/") ? "font-bold text-[#14BAB6]" : ""}`}>
+                    Admin Login
+                  </Link>
+                </NavbarItem>
+                <NavbarItem>
+                  <Button
+                    as={Link}
+                    color="primary"
+                    href="/ELogin"
+                    variant="flat"
+                    className={`text-primary ${isActive("/ELogin") ? "font-bold text-[#14BAB6]" : ""}`}
+                  >
+                    Employees Login
+                  </Button>
+                </NavbarItem>
+              </>
+            )}
           </>
         )}
       </NavbarContent>
@@ -327,19 +346,17 @@ export default function App() {
 
 function parseJwt(token) {
   try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)
-        .split('')
-        .map(function (c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join('')
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
     );
     return JSON.parse(jsonPayload);
   } catch (error) {
-    console.error('Failed to parse token:', error);
+    console.error("Failed to parse token:", error);
     return null;
   }
 }

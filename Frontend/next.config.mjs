@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
- 
-};
-
-export default nextConfig;
+    images: {
+      domains: ['i.ibb.co'], // Add other domains here if needed
+    },
+  };
+  
+  export default nextConfig;
+  
