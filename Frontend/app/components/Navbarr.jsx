@@ -1,4 +1,4 @@
-// pages/account-settings.js
+// pages/navbar.js
 "use client";
 import React, { useState, useEffect } from "react";
 import {
@@ -30,7 +30,7 @@ export default function App() {
 
   const pathname = usePathname();
   const router = useRouter();
-  const menuItems = [];
+  const menuItems = []; // Add your dynamic menu items here
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -228,41 +228,43 @@ export default function App() {
           <Spinner size="lg" color="primary" />
         ) : (
           <>
-            {companyLogoUrl && (
-              <Image
-                src={companyLogoUrl}
-                alt="Company Logo"
-                width={80}
-                height={40}
-                className="object-contain mr-4"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/fallback-logo.png";
-                }}
-              />
-            )}
             {loggedInUser ? (
-              <Dropdown>
-                <DropdownTrigger>
-                  <Button auto flat color="primary" className="text-white">
-                    Hello, {loggedInUser}
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu>
-                  <DropdownItem key="settings">
-                    <Link href="/account-settings" className="text-black">
-                      Account Settings
-                    </Link>
-                  </DropdownItem>
-                  <DropdownItem
-                    key="logout"
-                    color="danger"
-                    onClick={() => logout(isAdmin ? "token" : "employeeToken")}
-                  >
-                    <h1 className="text-red-400 text-md font-bold">Logout</h1>
-                  </DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
+              <>
+                <Dropdown>
+                  <DropdownTrigger>
+                    <Button auto flat color="primary" className="text-white">
+                      Hello, {loggedInUser}
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu>
+                    <DropdownItem key="settings">
+                      <Link href="/account-settings" className="text-black">
+                        Account Settings
+                      </Link>
+                    </DropdownItem>
+                    <DropdownItem
+                      key="logout"
+                      color="danger"
+                      onClick={() => logout(isAdmin ? "token" : "employeeToken")}
+                    >
+                      <h1 className="text-red-400 text-md font-bold">Logout</h1>
+                    </DropdownItem>
+                  </DropdownMenu>
+                </Dropdown>
+                {companyLogoUrl && (
+                  <Image
+                    src={companyLogoUrl}
+                    alt="Company Logo"
+                    width={80}
+                    height={40}
+                    className="object-contain ml-4"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "/fallback-logo.png";
+                    }}
+                  />
+                )}
+              </>
             ) : (
               <>
                 <NavbarItem>
